@@ -14,11 +14,6 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 TOKEN = os.environ['TELEGRAM_TOKEN']
 BASE_URL = "https://api.telegram.org/bot{}".format(TOKEN)
 
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-url_post = "http://gestioneorari.didattica.unimib.it/PortaleStudentiUnimib//grid_call.php"
 post_form = {
     "form-type": "corso",
     "list": 0,
@@ -34,6 +29,12 @@ post_form = {
     "_lang": "en",
     "all_events": 0,
 }
+
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+url_post = "http://gestioneorari.didattica.unimib.it/PortaleStudentiUnimib//grid_call.php"
 
 days = {1: "Lunedì", 2: "Martedì", 3: "Mercoledì", 4: "Giovedì", 5: "Venerdì"}
 
@@ -163,9 +164,16 @@ def get_html(data_by_hour):
   </tr>
 """
 
-    for hour in data_by_hour:
-        result += get_row_html(hour, data_by_hour[hour])
+    keys = list(data_by_hour.keys())
+    for i in range(len(keys) - 1, 0, -1):
+        if max(len(x) for x in data_by_hour[keys[i]]) > 0:
+            last = i + 1
+            break
+    else:
+        last = len(keys)
 
+    for hour in keys[:last]:
+        result += get_row_html(hour, data_by_hour[hour])
 
     result += "</table>"
     return result
@@ -174,7 +182,7 @@ def get_html(data_by_hour):
 def get_row_html(hour, row):
     result = ""
 
-    overlaps = [len(x) for x in row]
+    overlaps = [max(len(x), 1) for x in row]
     max_rowspan = max(1, reduce(lambda x, y: x * y, set(overlaps), 1))
     first = True
 
@@ -182,7 +190,7 @@ def get_row_html(hour, row):
     lectures_template = "    <td class='tg-s6z2' rowspan='{}' style='background:{};'>{}<br><br>{}</td>\n"
 
     for i in range(max(overlaps)):
-        result += "  <tr>\n"
+        result += "  <tr height=100px>\n"
 
         if first:
             result += hour_template.format(
@@ -196,7 +204,7 @@ def get_row_html(hour, row):
                 lecture = lectures[i]
             except IndexError:
                 if len(lectures) == 0:
-                    result += lectures_template.format(max_rowspan, '', '', '')
+                    result += lectures_template.format(1, '', '', '')
                 continue
 
             try:
@@ -255,7 +263,7 @@ def get_next_lecture(lectures, query):
 
 def render_html(filename, html, css):
     with open('tmp.html', 'w') as text_file:
-        text_file.write(css)
+        text_file.write("<style>" + css + "</style>\n")
         text_file.write(html)
 
     imgkitoptions = {"format": "png"}
@@ -277,7 +285,8 @@ def discorario(bot, update):
         query = update.message.text.lower()
 
         if update.message.text.find('orario') >= 0:
-            post_form["date"] = f"{datetime.now():%d-%m-%Y}"
+            # post_form["date"] = f"{datetime.now():%d-%m-%Y}"
+            post_form["date"] = "1-10-2018"
             lectures = parse_data_by_hour(read_data())
             render_html('tmp.png', get_html(lectures), css)
             schedule = open('tmp.png', 'rb')
