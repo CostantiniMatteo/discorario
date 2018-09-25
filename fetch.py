@@ -1,33 +1,47 @@
 import requests, json
 from time_utils import format_hour, hours
 
-
 url = (
     "http://gestioneorari.didattica.unimib.it/PortaleStudentiUnimib//grid_call.php"
 )
-
-form = {
-    "form-type": "corso",
-    "list": 0,
-    "anno": 2018,
-    "scuola": "Informatica",
-    "corso": "F1801Q",
-    "anno2": "GGG|2",
-    "anno2_multi": "GGG|2",
-    "visualizzazione_orario": "cal",
-    "date": "01-10-2018",
-    "periodo_didattico": "",
-    "_lang": "en",
-    "all_events": 0,
-}
+url_courses = (
+    "http://gestioneorari.didattica.unimib.it/PortaleStudentiUnimib//combo_call.php"
+)
 
 
-def read_data(course, course_id, year, date):
-    form["scuola"] = course
-    form["corso"] = course_id
-    form["anno2"] = form["anno2_multi"] = f"GGG|{year}"
-    form["date"] = date
+def get_form(course_id, course_name, year, partitioning, date):
+    form = {
+        "form-type": "corso",
+        "list": 0,
+        "anno": 2018,
+        "scuola": '',
+        "corso": "F1801Q",
+        "anno2": "GGG|2",
+        "anno2_multi": "GGG|2",
+        "visualizzazione_orario": "cal",
+        "date": "01-10-2018",
+        "periodo_didattico": "",
+        "_lang": "en",
+        "all_events": 0,
+    }
 
+    form['date'] = date
+    form['corso'] = course_id
+    anno = "GGG{}|" +  str(year)
+    if partitioning:
+        formatted_year = anno.format(
+            f"_{partitioning[0].upper()}-{partitioning[-1].upper()}"
+        )
+        form['anno2'] = formatted_year
+    else:
+        form['anno2'] = anno.format('')
+    form['anno2_multi'] = form['anno2']
+
+    return form
+
+
+def read_data(course_id, course_name, year, partitioning, date):
+    form = get_form(course_id, course_name, year, partitioning, date)
     response = requests.post(url, form).json()
     lectures = response["celle"]
     lectures = [
@@ -58,24 +72,6 @@ def parse_lectures(lectures):
     return result
 
 
-def fetch_schedule(course, course_id, year, date):
-    lectures = read_data(course, course_id, year, date)
+def fetch_schedule(course_id, course_name, year, partitioning, date):
+    lectures = read_data(course_id, course_name, year, partitioning, date)
     return parse_lectures(lectures)
-
-
-def stub_read_data():
-    with open("response.json") as f:
-        response = json.load(f)
-        lectures = response["celle"]
-        lectures = [
-            {
-                "name": c["nome_insegnamento"],
-                "room": c["codice_aula"],
-                "begin": format_hour(c["ora_inizio"]),
-                "end": format_hour(c["ora_fine"]),
-                "day": int(c["giorno"]),
-            }
-            for c in lectures
-        ]
-
-    return lectures

@@ -1,44 +1,72 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import os, logging
+import os
 from datetime import datetime
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
-from discorario import *
+import discorario as do
+import logger
+
 
 TOKEN = os.environ["TELEGRAM_TOKEN"]
 BASE_URL = "https://api.telegram.org/bot{}".format(TOKEN)
 
-logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    level=logging.INFO,
-)
-logger = logging.getLogger(__name__)
+ERROR_MESSAGE = "Qualcosa è andato storto. Controlla di non\
+aver fatto errori. Esempio: /preference informatica triennale 2 al\n\
+Se il problema persiste segnala l'errore!"
+NO_PREFERENCE_MESSAGE = "Pare tu non abbia nessun orario\
+preferito. Puoi salvarne uno con il comando /preference"
+HELP_MESSAGE = "Ecco le funzioni:\n\n\
+- /preference : per un orario preferito con il comando /preference. \
+Ad esempio: `/preference informatica triennale 2 al`\n\n\
+- Puoi cercare un orario di un corso specifico. Ad esempio: \
+`orario informatica triennale 1 mz`\n\n\
+- Consultare il tuo orario preferito scrivendo semplicemente `orario`\n\n\
+- /help : per visualizzare questo messaggio"
 
 
 def discorario(bot, update):
     try:
         chat_id = update.message.chat_id
-        query = update.message.text.lower()
+        query = update.message.text.lower().strip()
 
-        if update.message.text.find("orario") >= 0:
-            schedule = get_schedule(date="01-10-2018")
-            save_schedule(schedule, "schedule.png")
-            with open("schedule.png", "rb") as f:
-                bot.send_document(chat_id=chat_id, document=f, timeout=10000)
-        else:
-            try:
-                response = get_next_lecture(query)
-            except Exception as e:
-                response = "¯\\_(ツ)_/¯"
+        if query.find("orario") < 0:
+            preference = do.get_user_preference(chat_id)
+
+            if not preference:
+                update.message.reply_text(NO_PREFERENCE_MESSAGE)
+                logger.log(chat_id, query, NO_PREFERENCE_MESSAGE)
+                return
+
+            schedule = do.get_schedule(**preference, date="01-10-2018")
+            response = do.get_next_lecture(query, schedule)
             update.message.reply_text(response)
+            logger.log(chat_id, query, response)
+            return
+
+        if query == "orario":
+            preference = do.get_user_preference(chat_id)
+            if not preference:
+                update.message.reply_text(NO_PREFERENCE_MESSAGE)
+                logger.log(chat_id, query, NO_PREFERENCE_MESSAGE)
+                return
+            schedule = do.get_schedule(**preference, date="01-10-2018")
+        else:
+            params = parse_query(query)
+            schedule = do.get_schedule(date="01-10-2018", **params)
+
+        send_schedule(bot, update, schedule)
+        logger.log(chat_id, query, "*Sent document*")
 
     except Exception as e:
-        error(bot, update, str(e))
+        update.message.reply_text(ERROR_MESSAGE)
+        logger.log(chat_id, query, ERROR_MESSAGE, f"Exception: {e}")
 
 
-def error(bot, update, error):
-    logger.warning('Update "%s" caused error "%s"', update, error)
+def send_schedule(bot, update, schedule):
+    do.save_schedule(schedule, "schedule.png")
+    with open("schedule.png", "rb") as f:
+        bot.send_document(chat_id=update.message.chat_id, document=f, timeout=10000)
 
 
 def start(bot, update):
@@ -46,9 +74,48 @@ def start(bot, update):
 
 
 def help(bot, update):
-    update.message.reply_text(
-        "Cerca un corso o scrivi 'orario' per ricevere l'orario settimanale"
-    )
+    update.message.reply_text(HELP_MESSAGE)
+    logger.log(update.message.chat_id, update.message.text, HELP_MESSAGE)
+
+
+def save_preference(bot, update):
+    try:
+        chat_id = update.message.chat_id
+        text = update.message.text.lower()
+        preference = parse_query(text)
+        result = do.save_preference(user_id=chat_id, **preference)
+        if result:
+            update.message.reply_text("Salvato!")
+            logger.log(chat_id, text, "Salvato!")
+        else:
+            update.message.reply_text(ERROR_MESSAGE)
+            logger.log(chat_id, text, ERROR_MESSAGE, "Failed so save preference")
+    except Exception as e:
+        update.message.reply_text(ERROR_MESSAGE)
+        logger.log(chat_id, text, ERROR_MESSAGE, f"Exception: {e}")
+
+
+def parse_query(text):
+    s = text.lower().split()
+
+    if len(s) == 1:
+        return {
+            'course_name': 'informatica magistrale',
+            'partitioning': '',
+            'year': 2
+        }
+
+    res = {}
+    if s[-1].find('-') > 0 or len(s[-1]) == 2:
+        res['partitioning'] = s[-1]
+        res['year'] = int(s[-2])
+        res['course_name'] = ' '.join(s[1:-2])
+    else:
+        res['partitioning'] = ''
+        res['year'] = s[-1]
+        res['course_name'] = ' '.join(s[1:-1])
+
+    return res
 
 
 def main():
@@ -57,8 +124,8 @@ def main():
     dp = updater.dispatcher
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("help", help))
+    dp.add_handler(CommandHandler("preference", save_preference))
     dp.add_handler(MessageHandler(Filters.text, discorario))
-    dp.add_error_handler(error)
 
     updater.start_polling()
     updater.idle()
