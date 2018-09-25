@@ -42,8 +42,8 @@ def get_schedule(course_name, year, partitioning, date, course_id=None):
     return fetch_schedule(course_id, course_name, year, partitioning, date)
 
 
-def save_schedule(schedule, outfile):
-    rendering.save_schedule(schedule, outfile)
+def save_schedule(schedule, outfile, format='png'):
+    rendering.save_schedule(schedule, outfile, format=format)
     return True
 
 

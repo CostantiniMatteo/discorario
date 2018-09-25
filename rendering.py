@@ -1,4 +1,5 @@
 from functools import reduce
+import pdfkit, imgkit
 
 
 with open("colors.txt") as f:
@@ -85,7 +86,7 @@ def get_row_html(hour, row, color_mapping):
     return result
 
 
-def save_html(html, outfile, infile="schedule.html", css=None):
+def save_html(html, outfile, infile="schedule.html", css=None, format='png'):
     if not css:
         css = default_css
 
@@ -93,10 +94,15 @@ def save_html(html, outfile, infile="schedule.html", css=None):
         text_file.write("<style>" + css + "</style>\n")
         text_file.write(html)
 
-    # imgkitoptions = {"format": "png"}
-    # imgkit.from_file(infile, outfile, options=imgkitoptions)
+    outfile = f"{outfile}.{format}"
+    if format == 'png':
+        imgkitoptions = {"format": "png", "xvfb": ""}
+        imgkit.from_file(infile, outfile, options=imgkitoptions)
+    elif format == 'pdf':
+        pdfkitconfig = pdfkit.configuration(wkhtmltopdf='./wkhtmltopdf.sh')
+        pdfkit.from_file(infile, outfile, configuration=pdfkitconfig)
 
 
-def save_schedule(schedule, outfile, css=None):
+def save_schedule(schedule, outfile, css=None, format='png'):
     html = get_html(schedule)
-    save_html(html, outfile, css=css)
+    save_html(html, outfile, css=css, format=format)
