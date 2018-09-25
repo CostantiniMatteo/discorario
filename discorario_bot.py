@@ -10,7 +10,7 @@ BASE_URL = "https://api.telegram.org/bot{}".format(TOKEN)
 
 ERROR_MESSAGE = "Qualcosa è andato storto. Controlla di non\
 aver fatto errori. Devi inserire il nome del corso, l'anno ed eventualmente il gruppo (AL/MZ). \
-Esempio: /preference informatica triennale 2 al\n\
+Esempio: /preference informatica triennale 2 MZ\n\
 Se il problema persiste segnala l'errore!"
 
 NO_PREFERENCE_MESSAGE = "Pare tu non abbia nessun orario\
@@ -20,7 +20,7 @@ HELP_MESSAGE = "Ecco le funzioni:\n\n\
 - /preference : salva un orario preferito.\n\
 /preference nome corso anno [gruppo].\n\
 Ad esempio: /preference informatica triennale 2 al\n\n\
-- Per consolutare il tuo orario preferito puoi scrivere solo 'orario'.\n\n
+- Per consolutare il tuo orario preferito puoi scrivere solo 'orario'.\n\n\
 - Puoi cercare un orario di un corso specifico. Ad esempio: \
 orario informatica triennale 1 mz\n\n\
 - /help : per visualizzare questo messaggio"
@@ -82,7 +82,13 @@ def help(bot, update):
 def save_preference(bot, update):
     try:
         chat_id = update.message.chat_id
-        text = update.message.text.lower()
+        text = update.message.text.lower().strip()
+
+        if text == "/preference":
+            update.message.reply_text(ERROR_MESSAGE)
+            logger.log(chat_id, text, ERROR_MESSAGE, "/preference only")
+            return
+
         preference = parse_query(text)
         result = do.save_preference(user_id=chat_id, **preference)
         if result:
