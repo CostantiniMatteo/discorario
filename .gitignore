@@ -1,5 +1,7 @@
 __pycache__
 *.db
 *.png
-tmp.htlm
+tmp.html
 courses.json
+schedule.html
+schedule.pdf

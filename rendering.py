@@ -86,7 +86,7 @@ def get_row_html(hour, row, color_mapping):
     return result
 
 
-def save_html(html, outfile, infile="tmp.html", css=None):
+def save_html(html, outfile, infile="schedule.html", css=None):
     if not css:
         css = default_css
 
@@ -94,8 +94,8 @@ def save_html(html, outfile, infile="tmp.html", css=None):
         text_file.write("<style>" + css + "</style>\n")
         text_file.write(html)
 
-    imgkitoptions = {"format": "png"}
-    imgkit.from_file(infile, outfile, options=imgkitoptions)
+    # imgkitoptions = {"format": "png"}
+    # imgkit.from_file(infile, outfile, options=imgkitoptions)
 
 
 def save_schedule(schedule, outfile, css=None):

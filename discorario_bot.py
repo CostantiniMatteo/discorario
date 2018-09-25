@@ -64,8 +64,8 @@ def discorario(bot, update):
 
 
 def send_schedule(bot, update, schedule):
-    do.save_schedule(schedule, "schedule.png")
-    with open("schedule.png", "rb") as f:
+    do.save_schedule(schedule, "schedule.html")
+    with open("schedule.html", "rb") as f:
         bot.send_document(chat_id=update.message.chat_id, document=f, timeout=10000)
 
 
