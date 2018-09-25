@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 import os
 from datetime import datetime
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
@@ -12,16 +9,20 @@ TOKEN = os.environ["TELEGRAM_TOKEN"]
 BASE_URL = "https://api.telegram.org/bot{}".format(TOKEN)
 
 ERROR_MESSAGE = "Qualcosa è andato storto. Controlla di non\
-aver fatto errori. Esempio: /preference informatica triennale 2 al\n\
+aver fatto errori. Devi inserire il nome del corso, l'anno ed eventualmente il gruppo (AL/MZ). \
+Esempio: /preference informatica triennale 2 al\n\
 Se il problema persiste segnala l'errore!"
+
 NO_PREFERENCE_MESSAGE = "Pare tu non abbia nessun orario\
 preferito. Puoi salvarne uno con il comando /preference"
+
 HELP_MESSAGE = "Ecco le funzioni:\n\n\
-- /preference : per un orario preferito con il comando /preference. \
-Ad esempio: `/preference informatica triennale 2 al`\n\n\
+- /preference : salva un orario preferito.\n\
+/preference nome corso anno [gruppo].\n\
+Ad esempio: /preference informatica triennale 2 al\n\n\
+- Per consolutare il tuo orario preferito puoi scrivere solo 'orario'.\n\n
 - Puoi cercare un orario di un corso specifico. Ad esempio: \
-`orario informatica triennale 1 mz`\n\n\
-- Consultare il tuo orario preferito scrivendo semplicemente `orario`\n\n\
+orario informatica triennale 1 mz\n\n\
 - /help : per visualizzare questo messaggio"
 
 

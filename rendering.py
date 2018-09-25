@@ -1,5 +1,4 @@
 from functools import reduce
-import imgkit
 
 
 with open("colors.txt") as f:

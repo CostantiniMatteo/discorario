@@ -1,7 +1,7 @@
 import database as db
 
 
-def log(user_id, message, response, error='', stdout=True):
+def log(user_id, message, response, error='', stdout=False):
     if stdout:
         print("user_id:", user_id)
         print("message:", message)

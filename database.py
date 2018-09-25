@@ -1,8 +1,9 @@
 import sqlite3
 
+DB_PATH = "/home/matteo_angelo_costantini/discorario/discorario.db"
 
 def upsert_user_preference(user_id, course_id, course_name, year, partitioning=''):
-    conn = sqlite3.connect('database.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("""INSERT OR REPLACE INTO user_preference
     (user_id, course_id, course_name, year, partitioning)
@@ -12,7 +13,7 @@ def upsert_user_preference(user_id, course_id, course_name, year, partitioning='
 
 
 def get_user_preference(user_id):
-    conn = sqlite3.connect('database.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("SELECT * FROM user_preference WHERE user_id = ?;", (user_id,))
     user_preference = c.fetchone()
@@ -31,7 +32,7 @@ def get_user_preference(user_id):
 
 
 def get_course_name(course_id):
-    conn = sqlite3.connect('database.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("SELECT * FROM courses WHERE course_id = ?;", (course_id,))
     course_name = c.fetchone()
@@ -41,7 +42,7 @@ def get_course_name(course_id):
 
 
 def get_course_id(course_name):
-    conn = sqlite3.connect('database.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("SELECT * FROM courses WHERE course_name = ?;", (course_name,))
     course_id = c.fetchone()
@@ -54,7 +55,7 @@ def get_course_id(course_name):
 
 
 def log(user_id, message, response, error):
-    conn = sqlite3.connect('database.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("""INSERT INTO log (user_id, message, response, error)
     VALUES (?, ?, ?, ?);""", (user_id, message, response, error))

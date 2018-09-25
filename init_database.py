@@ -1,6 +1,7 @@
 import sqlite3
+import database as db
 
-conn = sqlite3.connect('database.db')
+conn = sqlite3.connect(db.DB_PATH)
 c = conn.cursor()
 
 c.execute("""CREATE TABLE user_preference (
@@ -11,8 +12,6 @@ c.execute("""CREATE TABLE user_preference (
     partitioning text
 );""")
 
-c.execute("""INSERT INTO user_preference VALUES
-    ('67857687', 'F1801Q', 'informatica magistrale', 2, '');""")
 
 c.execute("""CREATE TABLE courses (
     course_id text primary key,
