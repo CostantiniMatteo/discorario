@@ -94,7 +94,7 @@ def save_html(html, outfile, infile="schedule.html", css=None, format='png'):
         text_file.write("<style>" + css + "</style>\n")
         text_file.write(html)
 
-    outfile = f"{outfile}.{format}"
+    outfile = f"/home/matteo_angelo_costantini/discorario/{outfile}.{format}"
     if format == 'png':
         imgkitoptions = {"format": "png", "xvfb": ""}
         imgkit.from_file(infile, outfile, options=imgkitoptions)

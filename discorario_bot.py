@@ -8,7 +8,7 @@ import logger
 TOKEN = os.environ["TELEGRAM_TOKEN"]
 BASE_URL = "https://api.telegram.org/bot{}".format(TOKEN)
 
-ERROR_MESSAGE = "Qualcosa è andato storto. Controlla di non\
+ERROR_MESSAGE = "Qualcosa è andato storto. Controlla di non \
 aver fatto errori. Devi inserire il nome del corso, l'anno ed eventualmente il gruppo (AL/MZ). \
 Esempio: /preference informatica triennale 2 MZ\n\
 Se il problema persiste segnala l'errore!"
@@ -60,15 +60,15 @@ def discorario(bot, update):
         logger.log(chat_id, query, "*Sent document*")
 
     except Exception as e:
-        update.message.reply_text(ERROR_MESSAGE)
-        logger.log(chat_id, query, ERROR_MESSAGE, f"Exception: {e}")
+        update.message.reply_text("Qualcosa è andato storto.")
+        logger.log(chat_id, query, "Qualcosa è andato storto.", f"Exception: {e}")
 
 
 def send_schedule(bot, update, schedule):
     outfile = "schedule"
-    format = "png"
+    format = "pdf"
     do.save_schedule(schedule, outfile, format=format)
-    with open(f"{outfile}.{format}", "rb") as f:
+    with open(f"/home/matteo_angelo_costantini/discorario/{outfile}.{format}", "rb") as f:
         bot.send_document(chat_id=update.message.chat_id, document=f, timeout=10000)
 
 
