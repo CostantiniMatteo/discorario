@@ -8,10 +8,8 @@ import database as db
 def get_next_lecture(query, schedule):
     query = query.lower()
     now = datetime.now()
-    # day = now.weekday()
-    day = 0
-    # hour = now.hour
-    hour = 6
+    day = now.weekday()
+    hour = now.hour
 
     if hour >= 20:
         day += 1

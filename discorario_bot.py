@@ -30,6 +30,7 @@ def discorario(bot, update):
     try:
         chat_id = update.message.chat_id
         query = update.message.text.lower().strip()
+        today = datetime.now().strftime('%d-%m-%Y')
 
         if query.find("orario") < 0:
             preference = do.get_user_preference(chat_id)
@@ -39,7 +40,7 @@ def discorario(bot, update):
                 logger.log(chat_id, query, NO_PREFERENCE_MESSAGE)
                 return
 
-            schedule = do.get_schedule(**preference, date="01-10-2018")
+            schedule = do.get_schedule(**preference, date=today)
             response = do.get_next_lecture(query, schedule)
             update.message.reply_text(response)
             logger.log(chat_id, query, response)
@@ -51,10 +52,10 @@ def discorario(bot, update):
                 update.message.reply_text(NO_PREFERENCE_MESSAGE)
                 logger.log(chat_id, query, NO_PREFERENCE_MESSAGE)
                 return
-            schedule = do.get_schedule(**preference, date="01-10-2018")
+            schedule = do.get_schedule(**preference, date=today)
         else:
             params = parse_query(query)
-            schedule = do.get_schedule(date="01-10-2018", **params)
+            schedule = do.get_schedule(date=today, **params)
 
         send_schedule(bot, update, schedule)
         logger.log(chat_id, query, "*Sent document*")

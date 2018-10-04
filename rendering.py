@@ -47,26 +47,31 @@ def get_row_html(hour, row, color_mapping):
 
     overlaps = [max(len(x), 1) for x in row]
     max_rowspan = max(1, reduce(lambda x, y: x * y, set(overlaps), 1))
-    first = True
 
     hour_template = "    <td class='tg-ocds' rowspan='{}'>{}</td>\n"
     lectures_template = (
-        "    <td class='tg-s6z2' rowspan='{}' style='background:{};'>{}<br><br>{}</td>\n"
+        "    <td class='{}' rowspan='{}' style='background:{};'>{}<br><br>{}</td>\n"
     )
 
     for i in range(max(overlaps)):
         result += "  <tr height=100px>\n"
 
+        first = i == 0;
+        last = i == max(overlaps) - 1
         if first:
             result += hour_template.format(max_rowspan, hour.strftime("%H:%M"))
-            first = False
 
+        classes = "tg-s6z2"
+        if first:
+            classes += " tg-top-border"
+        if last:
+            classes += " tg-bottom-border"
         for lectures in row:
             try:
                 lecture = lectures[i]
             except IndexError:
                 if len(lectures) == 0:
-                    result += lectures_template.format(1, "", "", "")
+                    result += lectures_template.format(classes, 1, "", "", "")
                 continue
 
             try:
@@ -75,6 +80,7 @@ def get_row_html(hour, row, color_mapping):
                 rowspan = 1
 
             result += lectures_template.format(
+                classes,
                 rowspan,
                 color_mapping[lecture["name"]],
                 lecture["name"],
@@ -100,6 +106,7 @@ def save_html(html, outfile, infile="schedule.html", css=None, format='png'):
         imgkit.from_file(infile, outfile, options=imgkitoptions)
     elif format == 'pdf':
         pdfkitconfig = pdfkit.configuration(wkhtmltopdf='./wkhtmltopdf.sh')
+        options = {'page-width': '1000', 'page-height': '1000', 'xvfb': ''}
         pdfkit.from_file(infile, outfile, configuration=pdfkitconfig)
 
 
