@@ -47,17 +47,16 @@ def get_row_html(hour, row, color_mapping):
 
     overlaps = [max(len(x), 1) for x in row]
     max_rowspan = max(1, reduce(lambda x, y: x * y, set(overlaps), 1))
+    rowspans = [max_rowspan // o for o in overlaps]
 
     hour_template = "    <td class='tg-ocds' rowspan='{}'>{}</td>\n"
-    lectures_template = (
-        "    <td class='{}' rowspan='{}' style='background:{};'>{}<br><br>{}</td>\n"
-    )
+    lectures_template = "    <td class='{}' rowspan='{}' style='background:{};'>{}<br><br>{}</td>\n"
 
-    for i in range(max(overlaps)):
+    for i in range(max_rowspan):
         result += "  <tr height=100px>\n"
 
-        first = i == 0;
-        last = i == max(overlaps) - 1
+        first = i == 0
+        last = i == max_rowspan - 1
         if first:
             result += hour_template.format(max_rowspan, hour.strftime("%H:%M"))
 
@@ -66,33 +65,33 @@ def get_row_html(hour, row, color_mapping):
             classes += " tg-top-border"
         if last:
             classes += " tg-bottom-border"
-        for lectures in row:
-            try:
-                lecture = lectures[i]
-            except IndexError:
-                if len(lectures) == 0:
-                    result += lectures_template.format(classes, 1, "", "", "")
-                continue
 
-            try:
-                rowspan = max_rowspan / len(lectures)
-            except ZeroDivisionError:
-                rowspan = 1
+        for day in range(len(row)):
+            lectures = row[day]
+            if i % rowspans[day] == 0:
+                try:
+                    lecture = lectures[i // rowspans[day]]
+                    result += lectures_template.format(
+                        classes,
+                        rowspans[day],
+                        color_mapping[lecture["name"]],
+                        lecture["name"],
+                        lecture["room"],
+                    )
+                except Exception as e:
+                    import ipdb
 
-            result += lectures_template.format(
-                classes,
-                rowspan,
-                color_mapping[lecture["name"]],
-                lecture["name"],
-                lecture["room"],
-            )
+                    ipdb.set_trace()
+                    result += lectures_template.format(
+                        classes, max_rowspan, "", "", ""
+                    )
 
         result += "  </tr>\n"
 
     return result
 
 
-def save_html(html, outfile, infile="schedule.html", css=None, format='png'):
+def save_html(html, outfile, infile="schedule.html", css=None, format="png"):
     if not css:
         css = default_css
 
@@ -101,15 +100,15 @@ def save_html(html, outfile, infile="schedule.html", css=None, format='png'):
         text_file.write(html)
 
     outfile = f"/home/matteo_angelo_costantini/discorario/{outfile}.{format}"
-    if format == 'png':
+    if format == "png":
         imgkitoptions = {"format": "png", "xvfb": ""}
         imgkit.from_file(infile, outfile, options=imgkitoptions)
-    elif format == 'pdf':
-        pdfkitconfig = pdfkit.configuration(wkhtmltopdf='./wkhtmltopdf.sh')
-        options = {'page-width': '1000', 'page-height': '1000', 'xvfb': ''}
+    elif format == "pdf":
+        pdfkitconfig = pdfkit.configuration(wkhtmltopdf="./wkhtmltopdf.sh")
+        options = {"page-width": "1000", "page-height": "1000", "xvfb": ""}
         pdfkit.from_file(infile, outfile, configuration=pdfkitconfig)
 
 
-def save_schedule(schedule, outfile, css=None, format='png'):
+def save_schedule(schedule, outfile, css=None, format="png"):
     html = get_html(schedule)
     save_html(html, outfile, css=css, format=format)
