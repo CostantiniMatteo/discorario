@@ -53,7 +53,7 @@ def get_row_html(hour, row, color_mapping):
     lectures_template = "    <td class='{}' rowspan='{}' style='background:{};'>{}<br><br>{}</td>\n"
 
     for i in range(max_rowspan):
-        result += "  <tr height=100px>\n"
+        result += "  <tr height='50px'>\n"
 
         first = i == 0
         last = i == max_rowspan - 1
@@ -79,9 +79,6 @@ def get_row_html(hour, row, color_mapping):
                         lecture["room"],
                     )
                 except Exception as e:
-                    import ipdb
-
-                    ipdb.set_trace()
                     result += lectures_template.format(
                         classes, max_rowspan, "", "", ""
                     )
