@@ -102,7 +102,10 @@ def save_html(html, outfile, infile="schedule.html", css=None, format="png"):
         imgkit.from_file(infile, outfile, options=imgkitoptions)
     elif format == "pdf":
         pdfkitconfig = pdfkit.configuration(wkhtmltopdf="./wkhtmltopdf.sh")
-        options = { 'disable-smart-shrinking': '' }
+        options = {
+            'page-width': '210',
+            'page-height': '400',
+        }
         pdfkit.from_file(infile, outfile, configuration=pdfkitconfig, options=options)
 
 
