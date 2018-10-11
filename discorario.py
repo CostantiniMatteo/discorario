@@ -46,13 +46,9 @@ def save_schedule(schedule, outfile, format='png'):
 
 
 def save_preference(user_id, course_name, year, partitioning):
-    print("Porca troia")
     course_id = db.get_course_id(course_name)
-    print("course_id:", course_id)
     if course_id:
-        print("Calling upsert...")
         db.upsert_user_preference(user_id, course_id, course_name, year, partitioning)
-        print("Record updated")
         return True
     else:
         return False

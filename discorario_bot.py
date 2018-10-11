@@ -184,18 +184,14 @@ def partitioning(bot, update, user_data):
     chat_id = update.message.chat_id
     partitioning = text = update.message.text
 
-    print("partitioning:", partitioning)
     if partitioning == "Nessuno":
         user_data['preference']['partitioning'] = ''
     else:
         user_data['preference']['partitioning'] = partitioning
 
     preference = user_data['preference']
-    print("User data:", user_data)
     try:
-        print("Saving..")
         result = do.save_preference(user_id=chat_id, **preference)
-        print("Saved. Result:", result)
         if result:
             update.message.reply_text("Salvato!")
             logger.log(chat_id, text, "Salvato!")
