@@ -1,6 +1,7 @@
 import sqlite3
 
-DB_PATH = "/home/matteo_angelo_costantini/discorario/discorario.db"
+# DB_PATH = "/home/matteo_angelo_costantini/discorario/discorario.db"
+DB_PATH = "/Users/matteo/Desktop/discorario.db"
 
 def upsert_user_preference(user_id, course_id, course_name, year, partitioning=''):
     conn = sqlite3.connect(DB_PATH)
@@ -52,6 +53,13 @@ def get_course_id(course_name):
         return course_id[0]
     else:
         return None
+
+def get_all_courses():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT * FROM courses;")
+    courses = c.fetchall()
+    return courses
 
 
 def log(user_id, message, response, error):
