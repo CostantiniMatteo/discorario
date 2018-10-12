@@ -66,6 +66,9 @@ def get_all_courses():
     return courses
 
 
+# TODO: Add update of calendar
+
+
 def log(user_id, message, response, error):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()

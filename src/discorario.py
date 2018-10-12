@@ -22,9 +22,14 @@ def get_next_lecture(query, schedule):
         for h in split_hours(f"{hour}:30", "20:30"):
             for lecture in schedule[h][d]:
                 if lecture["name"].lower().find(query) >= 0:
+                    display_day = days[d]
+                    if d == now.weekday():
+                        display_day = "oggi"
+                    if d == now.weekday() + 1:
+                        display_day = "domani"
                     return template.format(
                         lecture["name"],
-                        days[d],
+                        display_day,
                         h.strftime("%H:%M"),
                         lecture["room"],
                     )
@@ -37,6 +42,7 @@ def get_schedule(course_name, year, partitioning, date, course_id=None):
         course_id = db.get_course_id(course_name)
     if not course_id:
         return None
+    # TODO: Filter courses when custom calendar is implemented
     return fetch_schedule(course_id, course_name, year, partitioning, date)
 
 
@@ -62,3 +68,6 @@ def get_user_preference(user_id):
 
 def get_all_courses():
     return db.get_all_courses()
+
+
+# TODO: Update custom calendar

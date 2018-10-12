@@ -21,17 +21,15 @@ import logger
 
 BASE_URL = "https://api.telegram.org/bot{}".format(TOKEN)
 
-ERROR_MESSAGE = "Qualcosa è andato storto. Controlla di non \
-aver fatto errori. Devi inserire il nome del corso, l'anno ed eventualmente il gruppo (AL/MZ). \
-Esempio: /preference informatica triennale 2 MZ\n\
-Se il problema persiste segnala l'errore!"
+ERROR_MESSAGE = "Qualcosa è andato storto."
 
 NO_PREFERENCE_MESSAGE = "Pare tu non abbia nessun orario\
 preferito. Puoi salvarne uno con il comando /preference"
 
 HELP_MESSAGE = "Ecco le funzioni:\n\n\
 - /preference : salva un orario preferito.\n\n\
-- Per consolutare il tuo orario preferito puoi scrivere solo 'orario'.\n\n\
+- Per consolutare il tuo orario preferito puoi scrivere solo 'orario' \
+o usare il comando /orario.\n\n\
 - Puoi cercare un orario di un corso specifico. Ad esempio: \
 orario informatica triennale 1 mz\n\n\
 - /help : per visualizzare questo messaggio"
@@ -47,26 +45,11 @@ def discorario(bot, update):
         today = datetime.now().strftime("%d-%m-%Y")
 
         if query.find("orario") < 0:
-            preference = do.get_user_preference(chat_id)
-
-            if not preference:
-                update.message.reply_text(NO_PREFERENCE_MESSAGE)
-                logger.log(chat_id, query, NO_PREFERENCE_MESSAGE)
-                return
-
-            schedule = do.get_schedule(**preference, date=today)
-            response = do.get_next_lecture(query, schedule)
-            update.message.reply_text(response)
-            logger.log(chat_id, query, response)
+            find_next_lecture(update, chat_id, query, today)
             return
 
         if query == "orario":
-            preference = do.get_user_preference(chat_id)
-            if not preference:
-                update.message.reply_text(NO_PREFERENCE_MESSAGE)
-                logger.log(chat_id, query, NO_PREFERENCE_MESSAGE)
-                return
-            schedule = do.get_schedule(**preference, date=today)
+            schedule = orario(update, chat_id, query, today)
         else:
             params = parse_query(query)
             schedule = do.get_schedule(date=today, **params)
@@ -75,10 +58,34 @@ def discorario(bot, update):
         logger.log(chat_id, query, "*Sent document*")
 
     except Exception as e:
-        update.message.reply_text("Qualcosa è andato storto.")
+        update.message.reply_text(ERROR_MESSAGE)
         logger.log(
-            chat_id, query, "Qualcosa è andato storto.", f"Exception: {e}"
+            chat_id, query, ERROR_MESSAGE, f"Exception: {e}"
         )
+
+
+def orario(update, chat_id, query, today):
+    preference = do.get_user_preference(chat_id)
+    if not preference:
+        update.message.reply_text(NO_PREFERENCE_MESSAGE)
+        logger.log(chat_id, query, NO_PREFERENCE_MESSAGE)
+        return
+    return do.get_schedule(**preference, date=today)
+
+
+def find_next_lecture(update, chat_id, query, today):
+    preference = do.get_user_preference(chat_id)
+
+    if not preference:
+        update.message.reply_text(NO_PREFERENCE_MESSAGE)
+        logger.log(chat_id, query, NO_PREFERENCE_MESSAGE)
+        return
+
+    schedule = do.get_schedule(**preference, date=today)
+    response = do.get_next_lecture(query, schedule)
+    update.message.reply_text(response)
+    logger.log(chat_id, query, response)
+    return
 
 
 def send_schedule(bot, update, schedule):
@@ -252,6 +259,9 @@ def partitioning(bot, update, user_data):
     return ConversationHandler.END
 
 
+# TODO: Custom calendar
+
+
 def cancel(bot, update, user_data):
     try:
         user_data["preference"] = {}
@@ -269,16 +279,16 @@ def main():
     DEPARTMENT, COURSE, YEAR, PARTITIONING = range(4)
     preference_conversation_handler = ConversationHandler(
         entry_points=[
-            CommandHandler("preference", begin_preference_, pass_user_data=True)
+            CommandHandler("preference", begin_preference, pass_user_data=True)
         ],
         states={
             PREF_DEPARTMENT: [
                 CallbackQueryHandler(department, pass_user_data=True)
             ],
-            PREF_COURSE: [CallbackQueryHandler(course_, pass_user_data=True)],
-            PREF_YEAR: [CallbackQueryHandler(year_, pass_user_data=True)],
+            PREF_COURSE: [CallbackQueryHandler(course, pass_user_data=True)],
+            PREF_YEAR: [CallbackQueryHandler(year, pass_user_data=True)],
             PREF_PARTITIONING: [
-                CallbackQueryHandler(partitioning_, pass_user_data=True)
+                CallbackQueryHandler(partitioning, pass_user_data=True)
             ],
         },
         fallbacks=[CommandHandler("cancel", cancel, pass_user_data=True)],
@@ -287,6 +297,7 @@ def main():
     dp = updater.dispatcher
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("help", help))
+    dp.add_handler(CommandHandler("orario", orario))
     dp.add_handler(preference_conversation_handler)
     dp.add_handler(MessageHandler(Filters.text, discorario))
 
