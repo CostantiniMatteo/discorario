@@ -269,16 +269,16 @@ def main():
     DEPARTMENT, COURSE, YEAR, PARTITIONING = range(4)
     preference_conversation_handler = ConversationHandler(
         entry_points=[
-            CommandHandler("preference", begin_preference_, pass_user_data=True)
+            CommandHandler("preference", begin_preference, pass_user_data=True)
         ],
         states={
             PREF_DEPARTMENT: [
                 CallbackQueryHandler(department, pass_user_data=True)
             ],
-            PREF_COURSE: [CallbackQueryHandler(course_, pass_user_data=True)],
-            PREF_YEAR: [CallbackQueryHandler(year_, pass_user_data=True)],
+            PREF_COURSE: [CallbackQueryHandler(course, pass_user_data=True)],
+            PREF_YEAR: [CallbackQueryHandler(year, pass_user_data=True)],
             PREF_PARTITIONING: [
-                CallbackQueryHandler(partitioning_, pass_user_data=True)
+                CallbackQueryHandler(partitioning, pass_user_data=True)
             ],
         },
         fallbacks=[CommandHandler("cancel", cancel, pass_user_data=True)],
