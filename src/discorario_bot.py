@@ -151,12 +151,14 @@ def parse_query(text):
 def begin_preference(bot, update, user_data):
     user_data["preference"] = {}
     courses = do.get_all_courses()
-    reply_keyboard = [[course_name] for course_id, course_name in courses]
+    reply_keyboard = [
+        [InlineKeyboardButton(course_name, callback_data=course_name)]
+        for course_id, course_name in courses
+    ]
+    reply_markup = InlineKeyboardMarkup(reply_keyboard)
     update.message.reply_text(
         "Scegli il corso di laurea. Per annullare usa /cancel",
-        reply_markup=ReplyKeyboardMarkup(
-            reply_keyboard, one_time_keyboard=True
-        ),
+        reply_markup=reply_markup,
     )
 
     return PREF_COURSE
@@ -167,46 +169,65 @@ def department(bot, update, user_data):
 
 
 def course(bot, update, user_data):
-    course_name = update.message.text.lower()
+    course_name = update.callback_query.data.lower()
+    chat_id = update.callback_query.message.chat_id
+    message_id = update.callback_query.message.message_id
+
     user_data["preference"]["course_name"] = course_name
     if course_name.find("magistrale") >= 0:
-        reply_keyboard = [["1", "2"]]
+        reply_keyboard = [
+            [
+                InlineKeyboardButton("1", callback_data="1"),
+                InlineKeyboardButton("2", callback_data="2"),
+            ]
+        ]
     else:
-        reply_keyboard = [["1", "2", "3"]]
+        reply_keyboard = [
+            [
+                InlineKeyboardButton("1", callback_data="1"),
+                InlineKeyboardButton("2", callback_data="2"),
+                InlineKeyboardButton("3", callback_data="3"),
+            ]
+        ]
 
-    update.message.reply_text(
-        "Scegli l'anno",
-        reply_markup=ReplyKeyboardMarkup(
-            reply_keyboard, one_time_keyboard=True
-        ),
+    update.callback_query.message.reply_text(
+        text="Scegli l'anno", reply_markup=InlineKeyboardMarkup(reply_keyboard)
     )
 
     return PREF_YEAR
 
 
 def year(bot, update, user_data):
+    chat_id = update.callback_query.message.chat_id
+    message_id = update.callback_query.message.message_id
     try:
-        year = int(update.message.text)
+        year = int(update.callback_query.data)
         user_data["preference"]["year"] = year
     except ValueError:
-        update.message.reply_text("Anno non valido")
+        update.callback_query.message.reply_text(
+            text="Anno non valido",
+            reply_markup=InlineKeyboardMarkup(reply_keyboard),
+        )
         return ConversationHandler.END
 
-    reply_keyboard = [["Nessuno"], ["A-L"], ["M-Z"]]
+    reply_keyboard = [
+        [InlineKeyboardButton("Nessuno", callback_data="Nessuno")],
+        [InlineKeyboardButton("A-L", callback_data="A-L")],
+        [InlineKeyboardButton("M-Z", callback_data="M-Z")],
+    ]
 
-    update.message.reply_text(
-        "Scegli il partizionamento",
-        reply_markup=ReplyKeyboardMarkup(
-            reply_keyboard, one_time_keyboard=True
-        ),
+    update.callback_query.message.reply_text(
+        text="Scegli il partizionamento",
+        reply_markup=InlineKeyboardMarkup(reply_keyboard),
     )
 
     return PREF_PARTITIONING
 
 
 def partitioning(bot, update, user_data):
-    chat_id = update.message.chat_id
-    partitioning = text = update.message.text
+    chat_id = update.callback_query.message.chat_id
+    message_id = update.callback_query.message.message_id
+    partitioning = text = update.callback_query.data
 
     if partitioning == "Nessuno":
         user_data["preference"]["partitioning"] = ""
@@ -217,15 +238,15 @@ def partitioning(bot, update, user_data):
     try:
         result = do.save_preference(user_id=chat_id, **preference)
         if result:
-            update.message.reply_text("Salvato!")
+            update.callback_query.message.reply_text(text="Salvato")
             logger.log(chat_id, text, "Salvato!")
         else:
-            update.message.reply_text(ERROR_MESSAGE)
+            update.callback_query.message.reply_text(text=ERROR_MESSAGE)
             logger.log(
                 chat_id, text, ERROR_MESSAGE, "Failed so save preference"
             )
     except Exception as e:
-        update.message.reply_text(ERROR_MESSAGE)
+        update.callback_query.message.reply_text(text=ERROR_MESSAGE)
         logger.log(chat_id, text, ERROR_MESSAGE, f"Exception: {e}")
 
     return ConversationHandler.END
@@ -237,9 +258,7 @@ def cancel(bot, update, user_data):
     except Exception:
         pass
 
-    update.message.reply_text(
-        "Salvataggio corso annullato", reply_markup=ReplyKeyboardRemove()
-    )
+    update.message.reply_text("Salvataggio corso annullato")
 
     return ConversationHandler.END
 
@@ -250,21 +269,16 @@ def main():
     DEPARTMENT, COURSE, YEAR, PARTITIONING = range(4)
     preference_conversation_handler = ConversationHandler(
         entry_points=[
-            CommandHandler("preference", begin_preference, pass_user_data=True)
+            CommandHandler("preference", begin_preference_, pass_user_data=True)
         ],
         states={
             PREF_DEPARTMENT: [
-                MessageHandler(Filters.text, department, pass_user_data=True),
-                # CallbackQueryHandler(department)
+                CallbackQueryHandler(department, pass_user_data=True)
             ],
-            PREF_COURSE: [
-                MessageHandler(Filters.text, course, pass_user_data=True)
-            ],
-            PREF_YEAR: [
-                MessageHandler(Filters.text, year, pass_user_data=True)
-            ],
+            PREF_COURSE: [CallbackQueryHandler(course_, pass_user_data=True)],
+            PREF_YEAR: [CallbackQueryHandler(year_, pass_user_data=True)],
             PREF_PARTITIONING: [
-                MessageHandler(Filters.text, partitioning, pass_user_data=True)
+                CallbackQueryHandler(partitioning_, pass_user_data=True)
             ],
         },
         fallbacks=[CommandHandler("cancel", cancel, pass_user_data=True)],
