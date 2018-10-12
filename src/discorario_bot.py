@@ -1,12 +1,24 @@
 import os
 from datetime import datetime
-from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove)
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, ConversationHandler
+from telegram import (
+    ReplyKeyboardMarkup,
+    ReplyKeyboardRemove,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+)
+from telegram.ext import (
+    Updater,
+    CommandHandler,
+    MessageHandler,
+    Filters,
+    ConversationHandler,
+    CallbackQueryHandler,
+)
+from configuration import TOKEN, BASE_PATH
 import discorario as do
 import logger
 
 
-TOKEN = os.environ["TELEGRAM_TOKEN"]
 BASE_URL = "https://api.telegram.org/bot{}".format(TOKEN)
 
 ERROR_MESSAGE = "Qualcosa è andato storto. Controlla di non \
@@ -32,7 +44,7 @@ def discorario(bot, update):
     try:
         chat_id = update.message.chat_id
         query = update.message.text.lower().strip()
-        today = datetime.now().strftime('%d-%m-%Y')
+        today = datetime.now().strftime("%d-%m-%Y")
 
         if query.find("orario") < 0:
             preference = do.get_user_preference(chat_id)
@@ -64,15 +76,19 @@ def discorario(bot, update):
 
     except Exception as e:
         update.message.reply_text("Qualcosa è andato storto.")
-        logger.log(chat_id, query, "Qualcosa è andato storto.", f"Exception: {e}")
+        logger.log(
+            chat_id, query, "Qualcosa è andato storto.", f"Exception: {e}"
+        )
 
 
 def send_schedule(bot, update, schedule):
     outfile = "schedule"
     format = "pdf"
     do.save_schedule(schedule, outfile, format=format)
-    with open(f"/home/matteo_angelo_costantini/discorario/{outfile}.{format}", "rb") as f:
-        bot.send_document(chat_id=update.message.chat_id, document=f, timeout=10000)
+    with open(os.path.join(BASE_PATH, f"{outfile}.{format}"), "rb") as f:
+        bot.send_document(
+            chat_id=update.message.chat_id, document=f, timeout=10000
+        )
 
 
 def start(bot, update):
@@ -101,7 +117,9 @@ def save_preference(bot, update):
             logger.log(chat_id, text, "Salvato!")
         else:
             update.message.reply_text(ERROR_MESSAGE)
-            logger.log(chat_id, text, ERROR_MESSAGE, "Failed so save preference")
+            logger.log(
+                chat_id, text, ERROR_MESSAGE, "Failed so save preference"
+            )
     except Exception as e:
         update.message.reply_text(ERROR_MESSAGE)
         logger.log(chat_id, text, ERROR_MESSAGE, f"Exception: {e}")
@@ -112,31 +130,33 @@ def parse_query(text):
 
     if len(s) == 1:
         return {
-            'course_name': 'informatica magistrale',
-            'partitioning': '',
-            'year': 2
+            "course_name": "informatica magistrale",
+            "partitioning": "",
+            "year": 2,
         }
 
     res = {}
-    if s[-1].find('-') > 0 or len(s[-1]) == 2:
-        res['partitioning'] = s[-1]
-        res['year'] = int(s[-2])
-        res['course_name'] = ' '.join(s[1:-2])
+    if s[-1].find("-") > 0 or len(s[-1]) == 2:
+        res["partitioning"] = s[-1]
+        res["year"] = int(s[-2])
+        res["course_name"] = " ".join(s[1:-2])
     else:
-        res['partitioning'] = ''
-        res['year'] = s[-1]
-        res['course_name'] = ' '.join(s[1:-1])
+        res["partitioning"] = ""
+        res["year"] = s[-1]
+        res["course_name"] = " ".join(s[1:-1])
 
     return res
 
 
 def begin_preference(bot, update, user_data):
-    user_data['preference'] = {}
+    user_data["preference"] = {}
     courses = do.get_all_courses()
     reply_keyboard = [[course_name] for course_id, course_name in courses]
     update.message.reply_text(
         "Scegli il corso di laurea. Per annullare usa /cancel",
-        reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True),
+        reply_markup=ReplyKeyboardMarkup(
+            reply_keyboard, one_time_keyboard=True
+        ),
     )
 
     return PREF_COURSE
@@ -148,7 +168,7 @@ def department(bot, update, user_data):
 
 def course(bot, update, user_data):
     course_name = update.message.text.lower()
-    user_data['preference']['course_name'] = course_name
+    user_data["preference"]["course_name"] = course_name
     if course_name.find("magistrale") >= 0:
         reply_keyboard = [["1", "2"]]
     else:
@@ -156,7 +176,9 @@ def course(bot, update, user_data):
 
     update.message.reply_text(
         "Scegli l'anno",
-        reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True),
+        reply_markup=ReplyKeyboardMarkup(
+            reply_keyboard, one_time_keyboard=True
+        ),
     )
 
     return PREF_YEAR
@@ -165,7 +187,7 @@ def course(bot, update, user_data):
 def year(bot, update, user_data):
     try:
         year = int(update.message.text)
-        user_data['preference']['year'] = year
+        user_data["preference"]["year"] = year
     except ValueError:
         update.message.reply_text("Anno non valido")
         return ConversationHandler.END
@@ -174,7 +196,9 @@ def year(bot, update, user_data):
 
     update.message.reply_text(
         "Scegli il partizionamento",
-        reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True),
+        reply_markup=ReplyKeyboardMarkup(
+            reply_keyboard, one_time_keyboard=True
+        ),
     )
 
     return PREF_PARTITIONING
@@ -185,11 +209,11 @@ def partitioning(bot, update, user_data):
     partitioning = text = update.message.text
 
     if partitioning == "Nessuno":
-        user_data['preference']['partitioning'] = ''
+        user_data["preference"]["partitioning"] = ""
     else:
-        user_data['preference']['partitioning'] = partitioning
+        user_data["preference"]["partitioning"] = partitioning
 
-    preference = user_data['preference']
+    preference = user_data["preference"]
     try:
         result = do.save_preference(user_id=chat_id, **preference)
         if result:
@@ -197,24 +221,24 @@ def partitioning(bot, update, user_data):
             logger.log(chat_id, text, "Salvato!")
         else:
             update.message.reply_text(ERROR_MESSAGE)
-            logger.log(chat_id, text, ERROR_MESSAGE, "Failed so save preference")
+            logger.log(
+                chat_id, text, ERROR_MESSAGE, "Failed so save preference"
+            )
     except Exception as e:
         update.message.reply_text(ERROR_MESSAGE)
         logger.log(chat_id, text, ERROR_MESSAGE, f"Exception: {e}")
-
 
     return ConversationHandler.END
 
 
 def cancel(bot, update, user_data):
     try:
-        user_data['preference'] = {}
+        user_data["preference"] = {}
     except Exception:
         pass
 
     update.message.reply_text(
-        "Salvataggio corso annullato",
-        reply_markup=ReplyKeyboardRemove()
+        "Salvataggio corso annullato", reply_markup=ReplyKeyboardRemove()
     )
 
     return ConversationHandler.END
@@ -223,17 +247,27 @@ def cancel(bot, update, user_data):
 def main():
     updater = Updater(TOKEN)
 
-
     DEPARTMENT, COURSE, YEAR, PARTITIONING = range(4)
     preference_conversation_handler = ConversationHandler(
-        entry_points=[CommandHandler("preference", begin_preference, pass_user_data=True)],
-        states = {
-            PREF_DEPARTMENT: [MessageHandler(Filters.text, department, pass_user_data=True)],
-            PREF_COURSE: [MessageHandler(Filters.text, course, pass_user_data=True)],
-            PREF_YEAR: [MessageHandler(Filters.text, year, pass_user_data=True)],
-            PREF_PARTITIONING: [MessageHandler(Filters.text, partitioning, pass_user_data=True)],
+        entry_points=[
+            CommandHandler("preference", begin_preference, pass_user_data=True)
+        ],
+        states={
+            PREF_DEPARTMENT: [
+                MessageHandler(Filters.text, department, pass_user_data=True),
+                # CallbackQueryHandler(department)
+            ],
+            PREF_COURSE: [
+                MessageHandler(Filters.text, course, pass_user_data=True)
+            ],
+            PREF_YEAR: [
+                MessageHandler(Filters.text, year, pass_user_data=True)
+            ],
+            PREF_PARTITIONING: [
+                MessageHandler(Filters.text, partitioning, pass_user_data=True)
+            ],
         },
-        fallbacks=[CommandHandler('cancel', cancel, pass_user_data=True)]
+        fallbacks=[CommandHandler("cancel", cancel, pass_user_data=True)],
     )
 
     dp = updater.dispatcher
@@ -241,8 +275,6 @@ def main():
     dp.add_handler(CommandHandler("help", help))
     dp.add_handler(preference_conversation_handler)
     dp.add_handler(MessageHandler(Filters.text, discorario))
-
-
 
     updater.start_polling()
     updater.idle()

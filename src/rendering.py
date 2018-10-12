@@ -1,11 +1,12 @@
+from configuration import BASE_PATH, CSS_PATH, COLOR_PATH, DEBUG
 from functools import reduce
-import pdfkit, imgkit
+import pdfkit, imgkit, os
 
 
-with open("colors.txt") as f:
+with open(COLOR_PATH) as f:
     colors = f.read().split("\n")[:-1]
 
-with open("css.css") as f:
+with open(CSS_PATH) as f:
     default_css = f.read()
 
 
@@ -96,17 +97,23 @@ def save_html(html, outfile, infile="schedule.html", css=None, format="png"):
         text_file.write("<style>" + css + "</style>\n")
         text_file.write(html)
 
-    outfile = f"/home/matteo_angelo_costantini/discorario/{outfile}.{format}"
+    outfile = os.path.join(BASE_PATH, f"{outfile}.{format}")
     if format == "png":
-        imgkitoptions = {"format": "png", "xvfb": ""}
-        imgkit.from_file(infile, outfile, options=imgkitoptions)
+        if not DEBUG:
+            imgkitoptions = {"format": "png", "xvfb": ""}
+            imgkit.from_file(infile, outfile, options=imgkitoptions)
+        else:
+            imgkitoptions = {"format": "png"}
+            imgkit.from_file(infile, outfile, options=imgkitoptions)
     elif format == "pdf":
-        pdfkitconfig = pdfkit.configuration(wkhtmltopdf="./wkhtmltopdf.sh")
-        options = {
-            'page-width': '210',
-            'page-height': '400',
-        }
-        pdfkit.from_file(infile, outfile, configuration=pdfkitconfig, options=options)
+        options = {"page-width": "210", "page-height": "400"}
+        if not DEBUG:
+            pdfkitconfig = pdfkit.configuration(wkhtmltopdf="./wkhtmltopdf.sh")
+            pdfkit.from_file(
+                infile, outfile, configuration=pdfkitconfig, options=options
+            )
+        else:
+            pdfkit.from_file(infile, outfile, options=options)
 
 
 def save_schedule(schedule, outfile, css=None, format="png"):

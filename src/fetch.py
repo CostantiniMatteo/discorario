@@ -1,12 +1,8 @@
 import requests, json
 from time_utils import format_hour, hours
 
-url = (
-    "http://gestioneorari.didattica.unimib.it/PortaleStudentiUnimib//grid_call.php"
-)
-url_courses = (
-    "http://gestioneorari.didattica.unimib.it/PortaleStudentiUnimib//combo_call.php"
-)
+url = "http://gestioneorari.didattica.unimib.it/PortaleStudentiUnimib//grid_call.php"
+url_courses = "http://gestioneorari.didattica.unimib.it/PortaleStudentiUnimib//combo_call.php"
 
 
 def get_form(course_id, course_name, year, partitioning, date):
@@ -14,7 +10,7 @@ def get_form(course_id, course_name, year, partitioning, date):
         "form-type": "corso",
         "list": 0,
         "anno": 2018,
-        "scuola": '',
+        "scuola": "",
         "corso": "F1801Q",
         "anno2": "GGG|2",
         "anno2_multi": "GGG|2",
@@ -25,17 +21,17 @@ def get_form(course_id, course_name, year, partitioning, date):
         "all_events": 0,
     }
 
-    form['date'] = date
-    form['corso'] = course_id
-    anno = "GGG{}|" +  str(year)
+    form["date"] = date
+    form["corso"] = course_id
+    anno = "GGG{}|" + str(year)
     if partitioning:
         formatted_year = anno.format(
             f"_{partitioning[0].upper()}-{partitioning[-1].upper()}"
         )
-        form['anno2'] = formatted_year
+        form["anno2"] = formatted_year
     else:
-        form['anno2'] = anno.format('')
-    form['anno2_multi'] = form['anno2']
+        form["anno2"] = anno.format("")
+    form["anno2_multi"] = form["anno2"]
 
     return form
 

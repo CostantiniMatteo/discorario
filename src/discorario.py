@@ -40,7 +40,7 @@ def get_schedule(course_name, year, partitioning, date, course_id=None):
     return fetch_schedule(course_id, course_name, year, partitioning, date)
 
 
-def save_schedule(schedule, outfile, format='png'):
+def save_schedule(schedule, outfile, format="png"):
     rendering.save_schedule(schedule, outfile, format=format)
     return True
 
@@ -48,7 +48,9 @@ def save_schedule(schedule, outfile, format='png'):
 def save_preference(user_id, course_name, year, partitioning):
     course_id = db.get_course_id(course_name)
     if course_id:
-        db.upsert_user_preference(user_id, course_id, course_name, year, partitioning)
+        db.upsert_user_preference(
+            user_id, course_id, course_name, year, partitioning
+        )
         return True
     else:
         return False

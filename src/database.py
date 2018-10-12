@@ -1,13 +1,18 @@
 import sqlite3
+from configuration import DB_PATH
 
-DB_PATH = "/home/matteo_angelo_costantini/discorario/discorario.db"
 
-def upsert_user_preference(user_id, course_id, course_name, year, partitioning=''):
+def upsert_user_preference(
+    user_id, course_id, course_name, year, partitioning=""
+):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute("""INSERT OR REPLACE INTO user_preference
+    c.execute(
+        """INSERT OR REPLACE INTO user_preference
     (user_id, course_id, course_name, year, partitioning)
-    VALUES (?, ?, ?, ?, ?);""", (user_id, course_id, course_name, year, partitioning))
+    VALUES (?, ?, ?, ?, ?);""",
+        (user_id, course_id, course_name, year, partitioning),
+    )
     conn.commit()
     conn.close()
 
@@ -21,11 +26,11 @@ def get_user_preference(user_id):
     conn.close()
     if user_preference:
         return {
-        'course_id': user_preference[1],
-        'course_name': user_preference[2],
-        'year': user_preference[3],
-        'partitioning': user_preference[4],
-    }
+            "course_id": user_preference[1],
+            "course_name": user_preference[2],
+            "year": user_preference[3],
+            "partitioning": user_preference[4],
+        }
     else:
         return None
 
@@ -52,6 +57,7 @@ def get_course_id(course_name):
     else:
         return None
 
+
 def get_all_courses():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -63,7 +69,10 @@ def get_all_courses():
 def log(user_id, message, response, error):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute("""INSERT INTO log (user_id, message, response, error)
-    VALUES (?, ?, ?, ?);""", (user_id, message, response, error))
+    c.execute(
+        """INSERT INTO log (user_id, message, response, error)
+    VALUES (?, ?, ?, ?);""",
+        (user_id, message, response, error),
+    )
     conn.commit()
     conn.close()
