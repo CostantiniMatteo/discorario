@@ -6,23 +6,22 @@ def upsert_user_preference(
     user_id, course_id, course_name, year, partitioning=""
 ):
     conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute(
-        """INSERT OR REPLACE INTO user_preference
-    (user_id, course_id, course_name, year, partitioning)
-    VALUES (?, ?, ?, ?, ?);""",
-        (user_id, course_id, course_name, year, partitioning),
-    )
-    conn.commit()
+    with conn:
+        conn.execute(
+            """INSERT OR REPLACE INTO user_preference
+                (user_id, course_id, course_name, year, partitioning)
+                VALUES (?, ?, ?, ?, ?);""",
+            (user_id, course_id, course_name, year, partitioning),
+        )
     conn.close()
 
 
 def get_user_preference(user_id):
     conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("SELECT * FROM user_preference WHERE user_id = ?;", (user_id,))
-    user_preference = c.fetchone()
-    conn.commit()
+    with conn:
+        user_preference = conn.execute(
+            "SELECT * FROM user_preference WHERE user_id = ?;", (user_id,)
+        ).fetchone()
     conn.close()
     if user_preference:
         return {
@@ -37,20 +36,20 @@ def get_user_preference(user_id):
 
 def get_course_name(course_id):
     conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("SELECT * FROM courses WHERE course_id = ?;", (course_id,))
-    course_name = c.fetchone()
-    conn.commit()
+    with conn:
+        course_name = conn.execute(
+            "SELECT * FROM courses WHERE course_id = ?;", (course_id,)
+        ).fetchone()
     conn.close()
     return course_name[1]
 
 
 def get_course_id(course_name):
     conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("SELECT * FROM courses WHERE course_name = ?;", (course_name,))
-    course_id = c.fetchone()
-    conn.commit()
+    with conn:
+        course_id = conn.execute(
+            "SELECT * FROM courses WHERE course_name = ?;", (course_name,)
+        ).fetchone()
     conn.close()
     if course_id:
         return course_id[0]
@@ -60,22 +59,28 @@ def get_course_id(course_name):
 
 def get_all_courses():
     conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("SELECT * FROM courses;")
-    courses = c.fetchall()
+    with conn:
+        courses = conn.execute("SELECT * FROM courses;").fetchall()
+    conn.close()
     return courses
 
 
-# TODO: Add update of calendar
+def save_user_class(user_id, classes):
+    entries = [(user_id, cl) for cl in classes]
+
+    conn = sqlite3.connect(DB_PATH)
+    with conn:
+        conn.executemany("INSERT INTO user_calendar VALUES (?,?);", entries)
+    conn.close()
 
 
 def log(user_id, message, response, error):
     conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute(
-        """INSERT INTO log (user_id, message, response, error)
-    VALUES (?, ?, ?, ?);""",
-        (user_id, message, response, error),
-    )
-    conn.commit()
+
+    with conn:
+        conn.execute(
+            """INSERT INTO log (user_id, message, response, error)
+            VALUES (?, ?, ?, ?);""",
+            (user_id, message, response, error),
+        )
     conn.close()

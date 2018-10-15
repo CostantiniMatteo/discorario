@@ -31,8 +31,7 @@ c.execute(
 )
 
 c.execute(
-    """CREATE TABLE user_schedule (
-    id integer primary key autoincrement,
+    """CREATE TABLE user_calendar (
     user_id text,
     class_name text
 );"""
