@@ -59,9 +59,7 @@ def discorario(bot, update):
 
     except Exception as e:
         update.message.reply_text(ERROR_MESSAGE)
-        logger.log(
-            chat_id, query, ERROR_MESSAGE, f"Exception: {e}"
-        )
+        logger.log(chat_id, query, ERROR_MESSAGE, f"Exception: {e}")
 
 
 def orario(update, chat_id, query, today):
@@ -157,7 +155,7 @@ def parse_query(text):
 
 def begin_preference(bot, update, user_data):
     user_data["preference"] = {}
-    courses = do.get_all_courses()
+    courses = do.get_all_degree_courses()
     reply_keyboard = [
         [InlineKeyboardButton(course_name, callback_data=course_name)]
         for course_id, course_name in courses

@@ -9,31 +9,15 @@ c.execute(
     user_id text primary key,
     course_id text,
     course_name text,
-    year integer,
-    partitioning text
-);"""
-)
-
-
-c.execute(
-    """CREATE TABLE courses (
-    course_id text primary key,
-    course_name text
+    department text,
+    year text
 );"""
 )
 
 c.execute(
-    """INSERT INTO courses VALUES
-    ('F1801Q', 'informatica magistrale'),
-    ('E3101Q', 'informatica triennale'),
-    ('F9101Q', 'data science magistrale'),
-    ('F9201P', 'ttc magistrale');"""
-)
-
-c.execute(
-    """CREATE TABLE user_calendar (
+    """CREATE TABLE user_agenda (
     user_id text,
-    class_name text
+    course_name text
 );"""
 )
 

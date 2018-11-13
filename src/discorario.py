@@ -1,73 +1,62 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from time_utils import days, split_hours
-from fetch import fetch_schedule
+from fetch import fetch_lectures, fetch_degree_courses
 import rendering
 import database as db
+from weekly_schedule import WeeklySchedule
 
 
-def get_next_lecture(query, schedule):
+def get_next_lecture(user_id: str, date: datetime, query: str):
     query = query.lower()
-    now = datetime.now()
-    day = now.weekday()
-    hour = now.hour
+    schedule = WeeklySchedule.from_user(user_id, date)
 
-    if hour >= 20:
-        day += 1
-        hour = 8
-    if hour < 8:
-        hour = 8
+    next_lecture = schedule.get_next_lecture(query, date)
+    if not next_lecture:
+        next_monday = date + timedelta(days=7 - date.weekday())
+        next_lecture = schedule.get_next_lecture(query, next_monday)
 
-    template = "La prossima lezione di {} è {} alle {} in aula {}"
-    for d in range(day, 5):
-        for h in split_hours(f"{hour}:30", "20:30"):
-            for lecture in schedule[h][d]:
-                if lecture["name"].lower().find(query) >= 0:
-                    display_day = days[d]
-                    if d == now.weekday():
-                        display_day = "oggi"
-                    if d == now.weekday() + 1:
-                        display_day = "domani"
-                    return template.format(
-                        lecture["name"],
-                        display_day,
-                        h.strftime("%H:%M"),
-                        lecture["room"],
-                    )
-    else:
-        return "¯\\_(ツ)_/¯"
+    return next_lecture
+    # if not next_lecture:
+    #     return "¯\\_(ツ)_/¯"
 
+    # template = "La prossima lezione di {course} è {day} alle {hour} in aula {room}"
 
-def get_schedule(course_name, year, partitioning, date, course_id=None):
-    if not course_id:
-        course_id = db.get_course_id(course_name)
-    if not course_id:
-        return None
-    # TODO: Filter courses when custom calendar is implemented
-    return fetch_schedule(course_id, course_name, year, partitioning, date)
+    # display_day = days[lecture.begin.weekday()]
+    # if d == date.
+
+    # display_day = days[d]
+    # if d == now.weekday():
+    #     display_day = "oggi"
+    # if d == now.weekday() + 1:
+    #     display_day = "domani"
+    # return template.format(
+    #     lecture["name"],
+    #     display_day,
+    #     h.strftime("%H:%M"),
+    #     lecture["room"],
+    # )
 
 
-def save_schedule(schedule, outfile, format="png"):
-    rendering.save_schedule(schedule, outfile, format=format)
-    return True
+def get_weekly_schedule(user_id: str, date: datetime):
+    schedule = WeeklySchedule.from_user(user_id, date)
+    return schedule
 
 
-def save_preference(user_id, course_name, year, partitioning):
-    course_id = db.get_course_id(course_name)
-    if course_id:
-        db.upsert_user_preference(
-            user_id, course_id, course_name, year, partitioning
-        )
-        return True
-    else:
-        return False
+def save_preference(user_id, course_id, course_name, department, year):
+    db.upsert_user_preference(user_id, course_id, course_name, department, year)
 
 
-def get_user_preference(user_id):
+def get_preference(user_id):
     return db.get_user_preference(user_id)
 
 
-def get_all_courses():
-    return db.get_all_courses()
+def get_all_degree_courses():
+    return fetch_degree_courses()
 
 
-# TODO: Update custom calendar
+def save_user_agenda(user_id, courses):
+    db.save_user_agenda(user_id, courses)
+
+
+def get_user_agenda(user_id):
+    return db.get_user_agenda(user_id)

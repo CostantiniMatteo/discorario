@@ -11,8 +11,11 @@ def split_hours(start_time, end_time):
     return list(rrule.rrule(rrule.HOURLY, dtstart=sdt, until=edt))
 
 
-def format_hour(dt):
-    return datetime.strptime(dt, "%H:%M")
+def format_hour(hours, day=None):
+    if day and hours:
+        return datetime.strptime(" ".join([day, hours]), "%d-%m-%Y %H:%M")
+
+    return datetime.strptime(hours, "%H:%M")
 
 
 # 8.30 - 20.30

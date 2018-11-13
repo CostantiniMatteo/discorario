@@ -1,11 +1,14 @@
 import requests, json
-from time_utils import format_hour, hours
+from datetime import datetime, timedelta
+from lecture import Lecture
+from degree_course import DegreeCourse
+from time_utils import format_hour
 
 url = "http://gestioneorari.didattica.unimib.it/PortaleStudentiUnimib//grid_call.php"
 url_courses = "http://gestioneorari.didattica.unimib.it/PortaleStudentiUnimib//combo_call.php"
 
 
-def get_form(course_id, course_name, year, partitioning, date):
+def get_form(course_id: str, department: str, year: str, date: datetime):
     form = {
         "form-type": "corso",
         "list": 0,
@@ -21,53 +24,56 @@ def get_form(course_id, course_name, year, partitioning, date):
         "all_events": 0,
     }
 
-    form["date"] = date
+    form["date"] = date.strftime("%d-%m-%Y")
+    form["scuola"] = department
     form["corso"] = course_id
-    anno = "GGG{}|" + str(year)
-    if partitioning:
-        formatted_year = anno.format(
-            f"_{partitioning[0].upper()}-{partitioning[-1].upper()}"
-        )
-        form["anno2"] = formatted_year
-    else:
-        form["anno2"] = anno.format("")
-    form["anno2_multi"] = form["anno2"]
+    form["anno2"] = year
+    form["anno2_multi"] = year
 
     return form
 
 
-def read_data(course_id, course_name, year, partitioning, date):
-    form = get_form(course_id, course_name, year, partitioning, date)
+def fetch_lectures(
+    course_id: str, course_name: str, department: str, year: str, date: datetime
+):
+    form = get_form(course_id, department, year, date)
     response = requests.post(url, form).json()
     lectures = response["celle"]
+    first_day = datetime.strptime(response['first_day'], "%d-%m-%Y")
+
+    def get_lecture(c):
+        weekday = int(c['giorno']) - 1
+        day = first_day + timedelta(days=weekday)
+        b_hours, b_minutes = map(int, c["ora_inizio"].split(':'))
+        e_hours, e_minutes = map(int, c["ora_fine"].split(':'))
+
+        return Lecture(
+            course=c["nome_insegnamento"],
+            room=c["codice_aula"],
+            begin=day.replace(hour=b_hours, minute=b_minutes),
+            end=day.replace(hour=e_hours, minute=e_minutes),
+            day=weekday
+        )
+
     lectures = [
-        {
-            "name": c["nome_insegnamento"],
-            "room": c["codice_aula"],
-            "begin": format_hour(c["ora_inizio"]),
-            "end": format_hour(c["ora_fine"]),
-            "day": int(c["giorno"]) - 1,
-        }
-        for c in lectures
+        get_lecture(c) for c in lectures if "nome_insegnamento" in c.keys()
     ]
     return lectures
 
 
-def parse_lectures(lectures):
-    result = {}
-    for hour in hours:
-        result[hour] = []
-        filtered = list(
-            filter(lambda l: l["begin"] <= hour < l["end"], lectures)
-        )
+def fetch_degree_courses():
+    response = requests.get(url_courses).text
+    courses = json.loads(response.split("\n")[0].split("=")[1][:-1])
+    courses_2018 = courses[0]["elenco"]
 
-        for day in range(0, 5):
-            day_lectures = list(filter(lambda l: l["day"] == day, filtered))
-            result[hour].append(day_lectures)
+    result = [
+        DegreeCourse(
+            name=c["label"],
+            code=c["valore"],
+            department=c["scuola"],
+            years=c["elenco_anni"],
+        )
+        for c in courses_2018
+    ]
 
     return result
-
-
-def fetch_schedule(course_id, course_name, year, partitioning, date):
-    lectures = read_data(course_id, course_name, year, partitioning, date)
-    return parse_lectures(lectures)

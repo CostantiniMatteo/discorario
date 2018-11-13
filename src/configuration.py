@@ -1,11 +1,6 @@
 import os
 
-try:
-    os.environ["DEBUG"]
-    DEBUG = True
-except:
-    DEBUG = False
-
+DEBUG = os.environ.get("DEBUG")
 TOKEN = os.environ["TELEGRAM_TOKEN"]
 
 if DEBUG:
