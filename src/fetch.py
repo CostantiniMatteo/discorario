@@ -5,9 +5,7 @@ from degree_course import DegreeCourse
 from time_utils import format_hour
 
 url = "http://gestioneorari.didattica.unimib.it/PortaleStudentiUnimib//grid_call.php"
-url_courses = (
-    "http://gestioneorari.didattica.unimib.it/PortaleStudentiUnimib//combo_call.php"
-)
+url_courses = "http://gestioneorari.didattica.unimib.it/PortaleStudentiUnimib//combo_call.php"
 
 
 def get_form(course_id: str, department: str, year: str, date: datetime):
@@ -57,7 +55,9 @@ def fetch_lectures(
             day=weekday,
         )
 
-    lectures = [get_lecture(c) for c in lectures if "nome_insegnamento" in c.keys()]
+    lectures = [
+        get_lecture(c) for c in lectures if "nome_insegnamento" in c.keys()
+    ]
     return lectures
 
 

@@ -11,7 +11,9 @@ with open(CSS_PATH) as f:
 
 
 def get_html(schedule):
-    courses = set(l["name"] for row in schedule.values() for day in row for l in day)
+    courses = set(
+        l["name"] for row in schedule.values() for day in row for l in day
+    )
     color_mapping = dict(zip(courses, colors))
 
     result = """
@@ -49,9 +51,7 @@ def get_row_html(hour, row, color_mapping):
     rowspans = [max_rowspan // o for o in overlaps]
 
     hour_template = "    <td class='tg-ocds' rowspan='{}'>{}</td>\n"
-    lectures_template = (
-        "    <td class='{}' rowspan='{}' style='background:{};'>{}<br><br>{}</td>\n"
-    )
+    lectures_template = "    <td class='{}' rowspan='{}' style='background:{};'>{}<br><br>{}</td>\n"
 
     for i in range(max_rowspan):
         result += "  <tr height='50px'>\n"
@@ -80,7 +80,9 @@ def get_row_html(hour, row, color_mapping):
                         lecture["room"],
                     )
                 except Exception as e:
-                    result += lectures_template.format(classes, max_rowspan, "", "", "")
+                    result += lectures_template.format(
+                        classes, max_rowspan, "", "", ""
+                    )
 
         result += "  </tr>\n"
 
