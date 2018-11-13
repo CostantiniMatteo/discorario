@@ -5,7 +5,9 @@ from degree_course import DegreeCourse
 from time_utils import format_hour
 
 url = "http://gestioneorari.didattica.unimib.it/PortaleStudentiUnimib//grid_call.php"
-url_courses = "http://gestioneorari.didattica.unimib.it/PortaleStudentiUnimib//combo_call.php"
+url_courses = (
+    "http://gestioneorari.didattica.unimib.it/PortaleStudentiUnimib//combo_call.php"
+)
 
 
 def get_form(course_id: str, department: str, year: str, date: datetime):
@@ -39,25 +41,23 @@ def fetch_lectures(
     form = get_form(course_id, department, year, date)
     response = requests.post(url, form).json()
     lectures = response["celle"]
-    first_day = datetime.strptime(response['first_day'], "%d-%m-%Y")
+    first_day = datetime.strptime(response["first_day"], "%d-%m-%Y")
 
     def get_lecture(c):
-        weekday = int(c['giorno']) - 1
+        weekday = int(c["giorno"]) - 1
         day = first_day + timedelta(days=weekday)
-        b_hours, b_minutes = map(int, c["ora_inizio"].split(':'))
-        e_hours, e_minutes = map(int, c["ora_fine"].split(':'))
+        b_hours, b_minutes = map(int, c["ora_inizio"].split(":"))
+        e_hours, e_minutes = map(int, c["ora_fine"].split(":"))
 
         return Lecture(
             course=c["nome_insegnamento"],
             room=c["codice_aula"],
             begin=day.replace(hour=b_hours, minute=b_minutes),
             end=day.replace(hour=e_hours, minute=e_minutes),
-            day=weekday
+            day=weekday,
         )
 
-    lectures = [
-        get_lecture(c) for c in lectures if "nome_insegnamento" in c.keys()
-    ]
+    lectures = [get_lecture(c) for c in lectures if "nome_insegnamento" in c.keys()]
     return lectures
 
 

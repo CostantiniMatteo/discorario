@@ -8,8 +8,9 @@ from fetch import fetch_lectures
 
 class WeeklySchedule:
     @staticmethod
-    def from_user(user_id: str, date: datetime=None):
+    def from_user(user_id: str, date: datetime = None):
         import discorario as do
+
         if not date:
             date = datetime.now()
         preference = do.get_preference(user_id)
@@ -17,8 +18,7 @@ class WeeklySchedule:
         lectures = fetch_lectures(date=date, **preference)
         return WeeklySchedule(lectures, courses)
 
-
-    def __init__(self, lectures: List[Lecture], courses: List[str]=[]):
+    def __init__(self, lectures: List[Lecture], courses: List[str] = []):
         self.schedule = {}
         self.courses = courses
 
@@ -41,14 +41,13 @@ class WeeklySchedule:
                     day=l.day,
                 )
                 for l in lectures
-                if l.begin.hour <= hour.hour < l.end.hour and is_course_in_agenda(l, self.courses)
+                if l.begin.hour <= hour.hour < l.end.hour
+                and is_course_in_agenda(l, self.courses)
             ]
-
 
             for day in range(0, 5):
                 day_lectures = list(filter(lambda l: l.day == day, filtered))
                 self.schedule[hour].append(day_lectures)
-
 
     def get_next_lecture(self, query: str, date: datetime):
         day = date.weekday()

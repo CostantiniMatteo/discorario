@@ -2,9 +2,7 @@ import sqlite3
 from configuration import DB_PATH
 
 
-def upsert_user_preference(
-    user_id, course_id, course_name, department, year=""
-):
+def upsert_user_preference(user_id, course_id, course_name, department, year=""):
     conn = sqlite3.connect(DB_PATH)
     with conn:
         conn.execute(

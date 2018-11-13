@@ -91,9 +91,7 @@ def send_schedule(bot, update, schedule):
     format = "pdf"
     do.save_schedule(schedule, outfile, format=format)
     with open(os.path.join(BASE_PATH, f"{outfile}.{format}"), "rb") as f:
-        bot.send_document(
-            chat_id=update.message.chat_id, document=f, timeout=10000
-        )
+        bot.send_document(chat_id=update.message.chat_id, document=f, timeout=10000)
 
 
 def start(bot, update):
@@ -122,9 +120,7 @@ def save_preference(bot, update):
             logger.log(chat_id, text, "Salvato!")
         else:
             update.message.reply_text(ERROR_MESSAGE)
-            logger.log(
-                chat_id, text, ERROR_MESSAGE, "Failed so save preference"
-            )
+            logger.log(chat_id, text, ERROR_MESSAGE, "Failed so save preference")
     except Exception as e:
         update.message.reply_text(ERROR_MESSAGE)
         logger.log(chat_id, text, ERROR_MESSAGE, f"Exception: {e}")
@@ -134,11 +130,7 @@ def parse_query(text):
     s = text.lower().split()
 
     if len(s) == 1:
-        return {
-            "course_name": "informatica magistrale",
-            "partitioning": "",
-            "year": 2,
-        }
+        return {"course_name": "informatica magistrale", "partitioning": "", "year": 2}
 
     res = {}
     if s[-1].find("-") > 0 or len(s[-1]) == 2:
@@ -210,8 +202,7 @@ def year(bot, update, user_data):
         user_data["preference"]["year"] = year
     except ValueError:
         update.callback_query.message.reply_text(
-            text="Anno non valido",
-            reply_markup=InlineKeyboardMarkup(reply_keyboard),
+            text="Anno non valido", reply_markup=InlineKeyboardMarkup(reply_keyboard)
         )
         return ConversationHandler.END
 
@@ -247,9 +238,7 @@ def partitioning(bot, update, user_data):
             logger.log(chat_id, text, "Salvato!")
         else:
             update.callback_query.message.reply_text(text=ERROR_MESSAGE)
-            logger.log(
-                chat_id, text, ERROR_MESSAGE, "Failed so save preference"
-            )
+            logger.log(chat_id, text, ERROR_MESSAGE, "Failed so save preference")
     except Exception as e:
         update.callback_query.message.reply_text(text=ERROR_MESSAGE)
         logger.log(chat_id, text, ERROR_MESSAGE, f"Exception: {e}")
@@ -280,9 +269,7 @@ def main():
             CommandHandler("preference", begin_preference, pass_user_data=True)
         ],
         states={
-            PREF_DEPARTMENT: [
-                CallbackQueryHandler(department, pass_user_data=True)
-            ],
+            PREF_DEPARTMENT: [CallbackQueryHandler(department, pass_user_data=True)],
             PREF_COURSE: [CallbackQueryHandler(course, pass_user_data=True)],
             PREF_YEAR: [CallbackQueryHandler(year, pass_user_data=True)],
             PREF_PARTITIONING: [
