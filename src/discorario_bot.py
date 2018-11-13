@@ -105,31 +105,6 @@ def help(bot, update):
     logger.log(update.message.chat_id, update.message.text, HELP_MESSAGE)
 
 
-def save_preference(bot, update):
-    try:
-        chat_id = update.message.chat_id
-        text = update.message.text.lower().strip()
-
-        if text == "/preference":
-            update.message.reply_text(ERROR_MESSAGE)
-            logger.log(chat_id, text, ERROR_MESSAGE, "/preference only")
-            return
-
-        preference = parse_query(text)
-        result = do.save_preference(user_id=chat_id, **preference)
-        if result:
-            update.message.reply_text("Salvato!")
-            logger.log(chat_id, text, "Salvato!")
-        else:
-            update.message.reply_text(ERROR_MESSAGE)
-            logger.log(
-                chat_id, text, ERROR_MESSAGE, "Failed so save preference"
-            )
-    except Exception as e:
-        update.message.reply_text(ERROR_MESSAGE)
-        logger.log(chat_id, text, ERROR_MESSAGE, f"Exception: {e}")
-
-
 def parse_query(text):
     s = text.lower().split()
 

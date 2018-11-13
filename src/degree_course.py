@@ -6,5 +6,5 @@ from dataclasses import dataclass
 class DegreeCourse:
     name: str
     code: str
-    department: str
+    department: str  # 'scuola' in APIs
     years: List[Dict[str, str]]

@@ -1,9 +1,14 @@
 import sqlite3
 from configuration import DB_PATH
+from typing import List
 
 
 def upsert_user_preference(
-    user_id, course_id, course_name, department, year=""
+    user_id: str,
+    course_id: str,
+    course_name: str,
+    department: str,
+    year: str = "",
 ):
     conn = sqlite3.connect(DB_PATH)
     with conn:
@@ -16,7 +21,7 @@ def upsert_user_preference(
     conn.close()
 
 
-def get_user_preference(user_id):
+def get_user_preference(user_id: str):
     conn = sqlite3.connect(DB_PATH)
     with conn:
         user_preference = conn.execute(
@@ -34,7 +39,7 @@ def get_user_preference(user_id):
         return None
 
 
-def save_user_agenda(user_id, courses):
+def save_user_agenda(user_id: str, courses: List[str]):
     entries = [(user_id, course) for course in courses]
 
     conn = sqlite3.connect(DB_PATH)
@@ -45,7 +50,7 @@ def save_user_agenda(user_id, courses):
     conn.close()
 
 
-def get_user_agenda(user_id):
+def get_user_agenda(user_id: str):
     conn = sqlite3.connect(DB_PATH)
     with conn:
         user_agenda = conn.execute(
@@ -56,7 +61,7 @@ def get_user_agenda(user_id):
         return [item[0] for item in user_agenda]
 
 
-def log(user_id, message, response, error):
+def log(user_id: str, message: str, response: str, error: str):
     conn = sqlite3.connect(DB_PATH)
 
     with conn:

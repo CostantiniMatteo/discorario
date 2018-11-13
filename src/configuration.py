@@ -1,12 +1,9 @@
 import os
 
 DEBUG = os.environ.get("DEBUG")
-TOKEN = os.environ["TELEGRAM_TOKEN"]
+TOKEN = os.environ.get("TELEGRAM_TOKEN")
 
-if DEBUG:
-    BASE_PATH = "/Users/matteo/git/discorario"
-else:
-    BASE_PATH = "/home/matteo_angelo_costantini/discorario"
+BASE_PATH = os.getcwd()
 RESOURCES = "res"
 DB_PATH = os.path.join(BASE_PATH, "discorario.db")
 CSS_PATH = os.path.join(BASE_PATH, RESOURCES, "css.css")

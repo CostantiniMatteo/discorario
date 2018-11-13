@@ -10,6 +10,7 @@ with open(CSS_PATH) as f:
     default_css = f.read()
 
 
+# TODO: Rewrite. Use WeeklySchedule instead of dictionary
 def get_html(schedule):
     courses = set(
         l["name"] for row in schedule.values() for day in row for l in day

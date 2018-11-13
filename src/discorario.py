@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from time_utils import days, split_hours
-from fetch import fetch_lectures, fetch_degree_courses
+from typing import List
+import fetch
 import rendering
 import database as db
 from weekly_schedule import WeeklySchedule
@@ -16,47 +17,29 @@ def get_next_lecture(user_id: str, date: datetime, query: str):
         next_lecture = schedule.get_next_lecture(query, next_monday)
 
     return next_lecture
-    # if not next_lecture:
-    #     return "¯\\_(ツ)_/¯"
-
-    # template = "La prossima lezione di {course} è {day} alle {hour} in aula {room}"
-
-    # display_day = days[lecture.begin.weekday()]
-    # if d == date.
-
-    # display_day = days[d]
-    # if d == now.weekday():
-    #     display_day = "oggi"
-    # if d == now.weekday() + 1:
-    #     display_day = "domani"
-    # return template.format(
-    #     lecture["name"],
-    #     display_day,
-    #     h.strftime("%H:%M"),
-    #     lecture["room"],
-    # )
 
 
 def get_weekly_schedule(user_id: str, date: datetime):
-    schedule = WeeklySchedule.from_user(user_id, date)
-    return schedule
+    return WeeklySchedule.from_user(user_id, date)
 
 
-def save_preference(user_id, course_id, course_name, department, year):
+def save_preference(
+    user_id: str, course_id: str, course_name: str, department: str, year: str
+):
     db.upsert_user_preference(user_id, course_id, course_name, department, year)
 
 
-def get_preference(user_id):
+def get_preference(user_id: str):
     return db.get_user_preference(user_id)
 
 
 def get_all_degree_courses():
-    return fetch_degree_courses()
+    return fetch.fetch_degree_courses()
 
 
-def save_user_agenda(user_id, courses):
+def save_user_agenda(user_id: str, courses: List[str]):
     db.save_user_agenda(user_id, courses)
 
 
-def get_user_agenda(user_id):
+def get_user_agenda(user_id: str):
     return db.get_user_agenda(user_id)
