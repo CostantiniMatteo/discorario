@@ -3,6 +3,7 @@ import os
 import configuration as conf
 import init_database as dbutil
 import discorario as do
+from datetime import datetime
 
 def setUpModule():
     dbutil.init()
@@ -10,13 +11,20 @@ def setUpModule():
 
 class PreferencesTest(unittest.TestCase):
 
-    def save_preference_test(self):
-        self.assertEqual("1","1")
+    def test_preferences(self):
+        do.save_preference("1","F1801Q","Informatica (Magistrali)","Informatica","GGG|2")
+        self.assertEqual(do.get_preference("1")["department"], "Informatica")
 
-class SecondTest(unittest.TestCase):
+class DegreeCoursesTest(unittest.TestCase):
 
-    def test_lower(self):
-        self.assertEqual("FOO".lower(), "foo");
+    def test_degree_courses(self):
+        self.assertEqual(len(do.get_all_degree_courses()), 71)
+
+class ScheduleTest(unittest.TestCase):
+
+    def test_get_weekly_schedule(self):
+        do.get_weekly_schedule("1", datetime.now())
+        self.assertEqual("ciao","ciao")
 
 def tearDownModule():
     os.remove(conf.DB_PATH)

@@ -18,21 +18,20 @@ def get_next_lecture(user_id: str, date: datetime, query: str):
 
     return next_lecture
 
-
 def get_weekly_schedule(user_id: str, date: datetime):
     return WeeklySchedule.from_user(user_id, date)
 
-
+#test_preferences
 def save_preference(
     user_id: str, course_id: str, course_name: str, department: str, year: str
 ):
     db.upsert_user_preference(user_id, course_id, course_name, department, year)
 
-
+#test_preferences
 def get_preference(user_id: str):
     return db.get_user_preference(user_id)
 
-
+#test_degree_courses
 def get_all_degree_courses():
     return fetch.fetch_degree_courses()
 
