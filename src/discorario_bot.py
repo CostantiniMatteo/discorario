@@ -15,6 +15,7 @@ from telegram.ext import (
     CallbackQueryHandler,
 )
 from configuration import TOKEN, BASE_PATH
+from time_utils import days
 import discorario as do
 import logger
 
@@ -42,7 +43,7 @@ def discorario(bot, update):
     try:
         chat_id = update.message.chat_id
         query = update.message.text.lower().strip()
-        today = datetime.now().strftime("%d-%m-%Y")
+        today = datetime.now()
 
         if query.find("orario") < 0:
             find_next_lecture(update, chat_id, query, today)
@@ -62,28 +63,35 @@ def discorario(bot, update):
         logger.log(chat_id, query, ERROR_MESSAGE, f"Exception: {e}")
 
 
-def orario(update, chat_id, query, today):
-    preference = do.get_user_preference(chat_id)
+def orario(update, chat_id, date=None):
+    date = date or datetime.now().strftime("%d-%m-%Y")
+    preference = do.get_preference(chat_id)
     if not preference:
         update.message.reply_text(NO_PREFERENCE_MESSAGE)
         logger.log(chat_id, query, NO_PREFERENCE_MESSAGE)
         return
-    return do.get_schedule(**preference, date=today)
+    return do.get_schedule(**preference, date=date)
 
 
-def find_next_lecture(update, chat_id, query, today):
-    preference = do.get_user_preference(chat_id)
+def find_next_lecture(update, chat_id, query, date):
+    preference = do.get_preference(chat_id)
 
     if not preference:
         update.message.reply_text(NO_PREFERENCE_MESSAGE)
         logger.log(chat_id, query, NO_PREFERENCE_MESSAGE)
         return
 
-    schedule = do.get_schedule(**preference, date=today)
-    response = do.get_next_lecture(query, schedule)
+    lecture = do.get_next_lecture(chat_id, date, query)
+
+    if not lecture:
+        update.message.reply_text("¯\\_(ツ)_/¯")
+        return
+
+    weekday = days[lecture.begin.weekday()]
+    hours = lecture.begin.strftime("%H:%M")
+    response = f"La prossima lezione di {lecture.course} è {weekday} alle {hours} in aula {lecture.room}."
     update.message.reply_text(response)
     logger.log(chat_id, query, response)
-    return
 
 
 def send_schedule(bot, update, schedule):

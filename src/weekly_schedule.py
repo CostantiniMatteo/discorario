@@ -18,12 +18,15 @@ class WeeklySchedule:
         lectures = fetch_lectures(date=date, **preference)
         return WeeklySchedule(lectures, courses)
 
-    def __init__(self, lectures: List[Lecture], courses: List[str] = []):
+    def __init__(self, lectures: List[Lecture], agenda: List[str] = []):
         self.schedule = {}
-        self.courses = courses
+        self.agenda = agenda
 
-        def is_course_in_agenda(lecture: Lecture, courses: List[str]):
-            for course in courses:
+        def is_course_in_agenda(lecture: Lecture, agenda: List[str]):
+            if not agenda:
+                return True
+
+            for course in agenda:
                 if lecture.course.lower().find(course.lower()) >= 0:
                     return True
             else:
@@ -42,7 +45,7 @@ class WeeklySchedule:
                 )
                 for l in lectures
                 if l.begin.hour <= hour.hour < l.end.hour
-                and is_course_in_agenda(l, self.courses)
+                and is_course_in_agenda(l, self.agenda)
             ]
 
             for day in range(0, 5):
