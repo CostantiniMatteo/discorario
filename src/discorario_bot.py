@@ -41,67 +41,64 @@ PREF_DEPARTMENT, PREF_COURSE, PREF_YEAR, PREF_PARTITIONING = range(4)
 
 def discorario(bot, update):
     try:
-        chat_id = update.message.chat_id
-        query = update.message.text.lower().strip()
-        today = datetime.now()
-
         if query.find("orario") < 0:
-            find_next_lecture(update, chat_id, query, today)
-            return
+            find_next_lecture(bot, update)
 
         if query == "orario":
-            schedule = orario(update, chat_id, query, today)
-        else:
-            params = parse_query(query)
-            schedule = do.get_schedule(date=today, **params)
-
-        send_schedule(bot, update, schedule)
-        logger.log(chat_id, query, "*Sent document*")
+            send_schedule(bot, update)
 
     except Exception as e:
         update.message.reply_text(ERROR_MESSAGE)
         logger.log(chat_id, query, ERROR_MESSAGE, f"Exception: {e}")
 
 
-def orario(update, chat_id, date=None):
-    date = date or datetime.now().strftime("%d-%m-%Y")
-    preference = do.get_preference(chat_id)
-    if not preference:
+def send_schedule(bot, update):
+    chat_id = update.message.chat_id
+    query = update.message.text
+
+    date = datetime.now()
+
+    try:
+        schedule = do.get_weekly_schedule(chat_id, date=date)
+    except KeyError:
         update.message.reply_text(NO_PREFERENCE_MESSAGE)
         logger.log(chat_id, query, NO_PREFERENCE_MESSAGE)
-        return
-    return do.get_schedule(**preference, date=date)
+    else:
+        # TODO: Check if there are other lectures for the current week
+        # if not, get next week's schedule
+
+        outfile = "schedule"
+        format = "pdf"
+        # TODO: Needs to be updated
+        do.save_schedule(schedule, outfile, format=format)
+        with open(os.path.join(BASE_PATH, f"{outfile}.{format}"), "rb") as f:
+            bot.send_document(
+                chat_id=update.message.chat_id, document=f, timeout=10000
+            )
+
+        logger.log(chat_id, query, "*Sent document*")
 
 
-def find_next_lecture(update, chat_id, query, date):
-    preference = do.get_preference(chat_id)
+def find_next_lecture(bot, update):
+    chat_id = update.message.chat_id
+    query = update.message.text.lower().strip()
+    date = datetime.now()
 
-    if not preference:
+    try:
+        lecture = do.get_next_lecture(chat_id, date, query)
+    except KeyError:
         update.message.reply_text(NO_PREFERENCE_MESSAGE)
         logger.log(chat_id, query, NO_PREFERENCE_MESSAGE)
-        return
+    else:
+        if not lecture:
+            update.message.reply_text("¯\\_(ツ)_/¯")
+        else:
+            weekday = days[lecture.begin.weekday()]
+            hours = lecture.begin.strftime("%H:%M")
+            response = f"La prossima lezione di {lecture.course} è {weekday} alle {hours} in aula {lecture.room}."
+            update.message.reply_text(response)
 
-    lecture = do.get_next_lecture(chat_id, date, query)
-
-    if not lecture:
-        update.message.reply_text("¯\\_(ツ)_/¯")
-        return
-
-    weekday = days[lecture.begin.weekday()]
-    hours = lecture.begin.strftime("%H:%M")
-    response = f"La prossima lezione di {lecture.course} è {weekday} alle {hours} in aula {lecture.room}."
-    update.message.reply_text(response)
-    logger.log(chat_id, query, response)
-
-
-def send_schedule(bot, update, schedule):
-    outfile = "schedule"
-    format = "pdf"
-    do.save_schedule(schedule, outfile, format=format)
-    with open(os.path.join(BASE_PATH, f"{outfile}.{format}"), "rb") as f:
-        bot.send_document(
-            chat_id=update.message.chat_id, document=f, timeout=10000
-        )
+            logger.log(chat_id, query, response)
 
 
 def start(bot, update):
@@ -111,29 +108,6 @@ def start(bot, update):
 def help(bot, update):
     update.message.reply_text(HELP_MESSAGE)
     logger.log(update.message.chat_id, update.message.text, HELP_MESSAGE)
-
-
-def parse_query(text):
-    s = text.lower().split()
-
-    if len(s) == 1:
-        return {
-            "course_name": "informatica magistrale",
-            "partitioning": "",
-            "year": 2,
-        }
-
-    res = {}
-    if s[-1].find("-") > 0 or len(s[-1]) == 2:
-        res["partitioning"] = s[-1]
-        res["year"] = int(s[-2])
-        res["course_name"] = " ".join(s[1:-2])
-    else:
-        res["partitioning"] = ""
-        res["year"] = s[-1]
-        res["course_name"] = " ".join(s[1:-1])
-
-    return res
 
 
 def begin_preference(bot, update, user_data):
@@ -167,8 +141,7 @@ def department(bot, update, user_data):
     ]
     reply_markup = InlineKeyboardMarkup(reply_keyboard)
     update.callback_query.message.reply_text(
-        "Scegli il corso di laurea.",
-        reply_markup=reply_markup,
+        "Scegli il corso di laurea.", reply_markup=reply_markup
     )
     return PREF_COURSE
 
@@ -185,7 +158,7 @@ def course(bot, update, user_data):
     user_data["preference"]["course_id"] = course.code
 
     reply_keyboard = [
-        [InlineKeyboardButton(year['name'], callback_data=year['code']),]
+        [InlineKeyboardButton(year["name"], callback_data=year["code"])]
         for year in course.years
     ]
     update.callback_query.message.reply_text(
@@ -204,7 +177,9 @@ def year(bot, update, user_data):
     user_data["preference"]["year"] = year
     preference = user_data["preference"]
     try:
-        result = do.save_preference(user_id=str(chat_id), **user_data["preference"])
+        result = do.save_preference(
+            user_id=str(chat_id), **user_data["preference"]
+        )
         if result:
             update.callback_query.message.reply_text(text="Salvato")
             logger.log(chat_id, text, "Salvato!")
@@ -255,7 +230,7 @@ def main():
     dp = updater.dispatcher
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("help", help))
-    dp.add_handler(CommandHandler("orario", orario))
+    dp.add_handler(CommandHandler("orario", send_schedule))
     dp.add_handler(preference_conversation_handler)
     dp.add_handler(MessageHandler(Filters.text, discorario))
 

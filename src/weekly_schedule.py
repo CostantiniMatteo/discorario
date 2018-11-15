@@ -13,7 +13,11 @@ class WeeklySchedule:
 
         if not date:
             date = datetime.now()
+
         preference = do.get_preference(user_id)
+        if not preference:
+            raise KeyError(f"User preference not found. user_id={user_id}")
+
         courses = do.get_user_agenda(user_id)
         lectures = fetch_lectures(date=date, **preference)
         return WeeklySchedule(lectures, courses)

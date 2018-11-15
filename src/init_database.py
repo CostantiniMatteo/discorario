@@ -1,6 +1,7 @@
 import sqlite3
 from configuration import DB_PATH
 
+
 def init():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -35,5 +36,6 @@ def init():
     conn.commit()
     conn.close()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     init()

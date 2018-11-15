@@ -6,7 +6,7 @@ import rendering
 import database as db
 from weekly_schedule import WeeklySchedule
 
-#NextLectureTest
+# NextLectureTest
 def get_next_lecture(user_id: str, date: datetime, query: str):
     query = query.lower()
     schedule = WeeklySchedule.from_user(user_id, date)
@@ -18,38 +18,47 @@ def get_next_lecture(user_id: str, date: datetime, query: str):
 
     return next_lecture
 
-#AgendaTest
+
+# AgendaTest
 def get_weekly_schedule(user_id: str, date: datetime):
     return WeeklySchedule.from_user(user_id, date)
 
-#PreferencesTest
+
+# PreferencesTest
 def save_preference(
     user_id: str, course_id: str, course_name: str, department: str, year: str
 ):
     try:
-        db.upsert_user_preference(user_id, course_id, course_name, department, year)
+        db.upsert_user_preference(
+            user_id, course_id, course_name, department, year
+        )
     except Exception:
         return False
     else:
         return True
 
-#PreferencesTest
+
+# PreferencesTest
 def get_preference(user_id: str):
     return db.get_user_preference(user_id)
 
-#DegreeCoursesTest
+
+# DegreeCoursesTest
 def get_all_degree_courses():
     return fetch.fetch_degree_courses()
 
-#AgendaTest
+
+# AgendaTest
 def get_all_departments():
     degree_courses = get_all_degree_courses()
     return set(course.department for course in degree_courses)
 
-#AgendaTest
+
+# AgendaTest
 def save_user_agenda(user_id: str, courses: List[str]):
     db.save_user_agenda(user_id, courses)
 
-#AgendaTest
+
+# AgendaTest
 def get_user_agenda(user_id: str):
     return db.get_user_agenda(user_id)
