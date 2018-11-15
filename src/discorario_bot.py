@@ -1,4 +1,4 @@
-import os
+import os, json
 from datetime import datetime
 from telegram import (
     ReplyKeyboardMarkup,
@@ -130,46 +130,56 @@ def parse_query(text):
 
 def begin_preference(bot, update, user_data):
     user_data["preference"] = {}
-    courses = do.get_all_degree_courses()
+    departments = do.get_all_departments()
     reply_keyboard = [
-        [InlineKeyboardButton(course_name, callback_data=course_name)]
-        for course_id, course_name in courses
+        [InlineKeyboardButton(dep.replace("_", " "), callback_data=dep)]
+        for dep in departments
     ]
     reply_markup = InlineKeyboardMarkup(reply_keyboard)
     update.message.reply_text(
-        "Scegli il corso di laurea. Per annullare usa /cancel",
+        "Scegli il dipartimento. Per annullare, in qualsiasi momento, usa /cancel",
         reply_markup=reply_markup,
     )
 
-    return PREF_COURSE
+    return PREF_DEPARTMENT
 
 
 def department(bot, update, user_data):
-    raise NotImplementedError
-
-
-def course(bot, update, user_data):
-    course_name = update.callback_query.data.lower()
+    department = update.callback_query.data
     chat_id = update.callback_query.message.chat_id
     message_id = update.callback_query.message.message_id
 
-    user_data["preference"]["course_name"] = course_name
-    if course_name.find("magistrale") >= 0:
-        reply_keyboard = [
-            [
-                InlineKeyboardButton("1", callback_data="1"),
-                InlineKeyboardButton("2", callback_data="2"),
-            ]
-        ]
-    else:
-        reply_keyboard = [
-            [
-                InlineKeyboardButton("1", callback_data="1"),
-                InlineKeyboardButton("2", callback_data="2"),
-                InlineKeyboardButton("3", callback_data="3"),
-            ]
-        ]
+    user_data["preference"]["department"] = department
 
+    courses = do.get_all_degree_courses()
+    reply_keyboard = [
+        [InlineKeyboardButton(course.name, callback_data=course.code)]
+        for course in courses
+        if course.department == user_data["preference"]["department"]
+    ]
+    reply_markup = InlineKeyboardMarkup(reply_keyboard)
+    update.callback_query.message.reply_text(
+        "Scegli il corso di laurea.",
+        reply_markup=reply_markup,
+    )
+    return PREF_COURSE
+
+
+def course(bot, update, user_data):
+    chat_id = update.callback_query.message.chat_id
+    message_id = update.callback_query.message.message_id
+
+    course_code = update.callback_query.data.lower()
+    courses = do.get_all_degree_courses()
+    course = next(c for c in courses if c.code.lower() == course_code.lower())
+
+    user_data["preference"]["course_name"] = course.name
+    user_data["preference"]["course_id"] = course.code
+
+    reply_keyboard = [
+        [InlineKeyboardButton(year['name'], callback_data=year['code']),]
+        for year in course.years
+    ]
     update.callback_query.message.reply_text(
         text="Scegli l'anno", reply_markup=InlineKeyboardMarkup(reply_keyboard)
     )
@@ -180,43 +190,13 @@ def course(bot, update, user_data):
 def year(bot, update, user_data):
     chat_id = update.callback_query.message.chat_id
     message_id = update.callback_query.message.message_id
-    try:
-        year = int(update.callback_query.data)
-        user_data["preference"]["year"] = year
-    except ValueError:
-        update.callback_query.message.reply_text(
-            text="Anno non valido",
-            reply_markup=InlineKeyboardMarkup(reply_keyboard),
-        )
-        return ConversationHandler.END
+    text = update.callback_query.message.text
 
-    reply_keyboard = [
-        [InlineKeyboardButton("Nessuno", callback_data="Nessuno")],
-        [InlineKeyboardButton("A-L", callback_data="A-L")],
-        [InlineKeyboardButton("M-Z", callback_data="M-Z")],
-    ]
-
-    update.callback_query.message.reply_text(
-        text="Scegli il partizionamento",
-        reply_markup=InlineKeyboardMarkup(reply_keyboard),
-    )
-
-    return PREF_PARTITIONING
-
-
-def partitioning(bot, update, user_data):
-    chat_id = update.callback_query.message.chat_id
-    message_id = update.callback_query.message.message_id
-    partitioning = text = update.callback_query.data
-
-    if partitioning == "Nessuno":
-        user_data["preference"]["partitioning"] = ""
-    else:
-        user_data["preference"]["partitioning"] = partitioning
-
+    year = update.callback_query.data
+    user_data["preference"]["year"] = year
     preference = user_data["preference"]
     try:
-        result = do.save_preference(user_id=chat_id, **preference)
+        result = do.save_preference(user_id=str(chat_id), **user_data["preference"])
         if result:
             update.callback_query.message.reply_text(text="Salvato")
             logger.log(chat_id, text, "Salvato!")
@@ -260,9 +240,6 @@ def main():
             ],
             PREF_COURSE: [CallbackQueryHandler(course, pass_user_data=True)],
             PREF_YEAR: [CallbackQueryHandler(year, pass_user_data=True)],
-            PREF_PARTITIONING: [
-                CallbackQueryHandler(partitioning, pass_user_data=True)
-            ],
         },
         fallbacks=[CommandHandler("cancel", cancel, pass_user_data=True)],
     )

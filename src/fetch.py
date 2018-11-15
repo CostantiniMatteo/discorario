@@ -71,7 +71,7 @@ def fetch_degree_courses():
             name=c["label"],
             code=c["valore"],
             department=c["scuola"],
-            years=c["elenco_anni"],
+            years=[{'code': i['valore'], 'name': i['label']} for i in c["elenco_anni"]],
         )
         for c in courses_2018
     ]

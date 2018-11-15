@@ -26,7 +26,12 @@ def get_weekly_schedule(user_id: str, date: datetime):
 def save_preference(
     user_id: str, course_id: str, course_name: str, department: str, year: str
 ):
-    db.upsert_user_preference(user_id, course_id, course_name, department, year)
+    try:
+        db.upsert_user_preference(user_id, course_id, course_name, department, year)
+    except Exception:
+        return False
+    else:
+        return True
 
 #PreferencesTest
 def get_preference(user_id: str):
@@ -35,6 +40,11 @@ def get_preference(user_id: str):
 #DegreeCoursesTest
 def get_all_degree_courses():
     return fetch.fetch_degree_courses()
+
+#AgendaTest
+def get_all_departments():
+    degree_courses = get_all_degree_courses()
+    return set(course.department for course in degree_courses)
 
 #AgendaTest
 def save_user_agenda(user_id: str, courses: List[str]):
