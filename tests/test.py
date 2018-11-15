@@ -3,9 +3,9 @@ import sys, os
 
 sys.path.insert(0, os.path.abspath('../src/'))
 
-import src.configuration as conf
-import src.init_database as dbutil
-import src.discorario as do
+import configuration as conf
+import init_database as dbutil
+import discorario as do
 from datetime import datetime
 
 def setUpModule():

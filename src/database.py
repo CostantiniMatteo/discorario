@@ -59,6 +59,8 @@ def get_user_agenda(user_id: str):
 
     if user_agenda:
         return [item[0] for item in user_agenda]
+    else:
+        return []
 
 
 def log(user_id: str, message: str, response: str, error: str):
