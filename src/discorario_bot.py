@@ -10,6 +10,7 @@ from telegram.ext import (
     Updater,
     CommandHandler,
     MessageHandler,
+    RegexHandler,
     Filters,
     ConversationHandler,
     CallbackQueryHandler,
@@ -35,26 +36,16 @@ o usare il comando /orario.\n\n\
 orario informatica triennale 1 mz\n\n\
 - /help : per visualizzare questo messaggio"
 
-
-PREF_DEPARTMENT, PREF_COURSE, PREF_YEAR, PREF_PARTITIONING = range(4)
-
-
-def discorario(bot, update):
-    try:
-        if query.find("orario") < 0:
-            find_next_lecture(bot, update)
-
-        if query == "orario":
-            send_schedule(bot, update)
-
-    except Exception as e:
-        update.message.reply_text(ERROR_MESSAGE)
-        logger.log(chat_id, query, ERROR_MESSAGE, f"Exception: {e}")
+PREF_DEPARTMENT, PREF_COURSE, PREF_YEAR = range(3)
+UPDATE_AGENDA = 0
 
 
 def send_schedule(bot, update):
     chat_id = update.message.chat_id
     query = update.message.text
+
+    update.message.reply_text("*Send schedule*")
+    return
 
     date = datetime.now()
 
@@ -140,9 +131,13 @@ def department(bot, update, user_data):
         if course.department == user_data["preference"]["department"]
     ]
     reply_markup = InlineKeyboardMarkup(reply_keyboard)
-    update.callback_query.message.reply_text(
-        "Scegli il corso di laurea.", reply_markup=reply_markup
+    bot.edit_message_text(
+        text="Scegli il corso di laurea.",
+        chat_id=chat_id,
+        message_id=message_id,
+        reply_markup=reply_markup
     )
+
     return PREF_COURSE
 
 
@@ -161,8 +156,12 @@ def course(bot, update, user_data):
         [InlineKeyboardButton(year["name"], callback_data=year["code"])]
         for year in course.years
     ]
-    update.callback_query.message.reply_text(
-        text="Scegli l'anno", reply_markup=InlineKeyboardMarkup(reply_keyboard)
+    reply_markup = InlineKeyboardMarkup(reply_keyboard)
+    bot.edit_message_text(
+        text="Scegli l'anno",
+        chat_id=chat_id,
+        message_id=message_id,
+        reply_markup=reply_markup
     )
 
     return PREF_YEAR
@@ -181,41 +180,105 @@ def year(bot, update, user_data):
             user_id=str(chat_id), **user_data["preference"]
         )
         if result:
-            update.callback_query.message.reply_text(text="Salvato")
+            bot.edit_message_text(
+                text="Salvato!",
+                chat_id=chat_id,
+                message_id=message_id,
+            )
             logger.log(chat_id, text, "Salvato!")
         else:
-            update.callback_query.message.reply_text(text=ERROR_MESSAGE)
+            bot.edit_message_text(
+                text=ERROR_MESSAGE,
+                chat_id=chat_id,
+                message_id=message_id,
+            )
             logger.log(
                 chat_id, text, ERROR_MESSAGE, "Failed so save preference"
             )
     except Exception as e:
-        update.callback_query.message.reply_text(text=ERROR_MESSAGE)
+        bot.edit_message_text(
+            text=ERROR_MESSAGE,
+            chat_id=chat_id,
+            message_id=message_id,
+        )
         logger.log(chat_id, text, ERROR_MESSAGE, f"Exception: {e}")
 
     return ConversationHandler.END
 
 
-# TODO: Custom calendar
+def build_agenda_reply_keyboard(courses, user_agenda):
+    reply_keyboard = [[InlineKeyboardButton('Salva', callback_data='done')]]
+    reply_keyboard += [
+        [InlineKeyboardButton(f"✔ {c}", callback_data=c)] if c in user_agenda
+        else [InlineKeyboardButton(c, callback_data=c)] for c in courses
+    ]
+    reply_keyboard += [[InlineKeyboardButton('Salva', callback_data='done')]]
+    return reply_keyboard
+
+
+def begin_agenda(bot, update, user_data):
+    chat_id = update.message.chat_id
+    query = update.message.text
+
+    preference = do.get_preference(chat_id)
+    user_agenda = user_data["agenda"] = do.get_user_agenda(chat_id)
+    courses = user_data["courses"] = do.get_courses(**preference)
+
+    reply_keyboard = build_agenda_reply_keyboard(courses, user_agenda)
+    reply_markup = InlineKeyboardMarkup(reply_keyboard)
+    update.message.reply_text(
+        text="Seleziona i corsi che ti interessano.",
+        reply_markup=reply_markup,
+    )
+
+    return UPDATE_AGENDA
+
+
+def update_agenda(bot, update, user_data):
+    chat_id = update.callback_query.message.chat_id
+    message_id = update.callback_query.message.message_id
+    course = update.callback_query.data
+    courses = user_data["courses"]
+    user_agenda = user_data["agenda"]
+
+    if course == 'done':
+        do.save_user_agenda(chat_id, user_data["agenda"])
+        bot.edit_message_text(
+            text="Calendario salvato!",
+            chat_id=chat_id,
+            message_id=message_id,
+        )
+        return ConversationHandler.END
+
+    if course not in user_data["agenda"]:
+        user_data["agenda"].append(course)
+    else:
+        user_data["agenda"].remove(course)
+
+    reply_keyboard = build_agenda_reply_keyboard(courses, user_data["agenda"])
+    reply_markup = InlineKeyboardMarkup(reply_keyboard)
+    bot.edit_message_text(
+            text="Seleziona i corsi che ti interessano.",
+            chat_id=chat_id,
+            message_id=message_id,
+            reply_markup=reply_markup,
+    )
+
+    return UPDATE_AGENDA
 
 
 def cancel(bot, update, user_data):
-    try:
-        user_data["preference"] = {}
-    except Exception:
-        pass
-
+    user_data.clear()
     update.message.reply_text("Salvataggio corso annullato")
-
     return ConversationHandler.END
 
 
 def main():
     updater = Updater(TOKEN)
 
-    DEPARTMENT, COURSE, YEAR, PARTITIONING = range(4)
     preference_conversation_handler = ConversationHandler(
         entry_points=[
-            CommandHandler("preference", begin_preference, pass_user_data=True)
+            CommandHandler("cdl", begin_preference, pass_user_data=True)
         ],
         states={
             PREF_DEPARTMENT: [
@@ -227,12 +290,26 @@ def main():
         fallbacks=[CommandHandler("cancel", cancel, pass_user_data=True)],
     )
 
+    agenda_conversation_handler = ConversationHandler(
+        entry_points=[
+            CommandHandler("calendario", begin_agenda, pass_user_data=True)
+        ],
+        states={
+            UPDATE_AGENDA: [
+                CallbackQueryHandler(update_agenda, pass_user_data=True)
+            ]
+        },
+        fallbacks=[CommandHandler("cancel", cancel, pass_user_data=True)]
+    )
+
     dp = updater.dispatcher
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("help", help))
     dp.add_handler(CommandHandler("orario", send_schedule))
+    dp.add_handler(RegexHandler("^[^a-zA-Z]*orario[^a-zA-Z]*$", send_schedule))
     dp.add_handler(preference_conversation_handler)
-    dp.add_handler(MessageHandler(Filters.text, discorario))
+    dp.add_handler(agenda_conversation_handler)
+    dp.add_handler(MessageHandler(Filters.text, find_next_lecture))
 
     updater.start_polling()
     updater.idle()

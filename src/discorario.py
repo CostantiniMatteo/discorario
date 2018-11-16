@@ -62,3 +62,7 @@ def save_user_agenda(user_id: str, courses: List[str]):
 # AgendaTest
 def get_user_agenda(user_id: str):
     return db.get_user_agenda(user_id)
+
+
+def get_courses(course_id: str, course_name: str, department: str, year: str):
+    return fetch.fetch_courses_by_degree_course(course_id, course_name, department, year)

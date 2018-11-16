@@ -44,6 +44,9 @@ def save_user_agenda(user_id: str, courses: List[str]):
 
     conn = sqlite3.connect(DB_PATH)
     with conn:
+        conn.execute(
+            "DELETE FROM user_agenda WHERE user_id = ?;", (user_id, )
+        )
         conn.executemany(
             "INSERT OR REPLACE INTO user_agenda VALUES (?,?);", entries
         )

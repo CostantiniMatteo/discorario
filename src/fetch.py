@@ -63,8 +63,8 @@ def fetch_lectures(
 
 def fetch_degree_courses():
     response = requests.get(url_courses).text
-    courses = json.loads(response.split("\n")[0].split("=")[1][:-1])
-    courses_2018 = courses[0]["elenco"]
+    degree_courses = json.loads(response.split("\n")[0].split("=")[1][:-1])
+    degree_courses_2018 = degree_courses[0]["elenco"]
 
     result = [
         DegreeCourse(
@@ -76,7 +76,30 @@ def fetch_degree_courses():
                 for i in c["elenco_anni"]
             ],
         )
-        for c in courses_2018
+        for c in degree_courses_2018
     ]
 
     return result
+
+
+def fetch_courses_by_degree_course(course_id: str, course_name: str, department: str, year: str):
+    response = requests.get(url_courses).text
+    courses = json.loads(response.split("\n")[1].split("=")[1][:-1])
+    courses_2018 = courses[0]["elenco"]
+
+    def to_skip(course):
+        course = course.lower()
+        words = ["prova finale", "erasmus"]
+
+        for w in words:
+            if course.find(w) >= 0:
+                return True
+        else:
+            return False
+
+    result = set(
+        c["label"].strip() for c in courses_2018
+        if c["valore"].find(course_id) >= 0 and not to_skip(c["label"])
+    )
+
+    return list(result)
