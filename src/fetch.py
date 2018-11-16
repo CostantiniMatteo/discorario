@@ -82,7 +82,9 @@ def fetch_degree_courses():
     return result
 
 
-def fetch_courses_by_degree_course(course_id: str, course_name: str, department: str, year: str):
+def fetch_courses_by_degree_course(
+    course_id: str, course_name: str, department: str, year: str
+):
     response = requests.get(url_courses).text
     courses = json.loads(response.split("\n")[1].split("=")[1][:-1])
     courses_2018 = courses[0]["elenco"]
@@ -98,7 +100,8 @@ def fetch_courses_by_degree_course(course_id: str, course_name: str, department:
             return False
 
     result = set(
-        c["label"].strip() for c in courses_2018
+        c["label"].strip()
+        for c in courses_2018
         if c["valore"].find(course_id) >= 0 and not to_skip(c["label"])
     )
 

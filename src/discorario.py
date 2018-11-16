@@ -1,8 +1,7 @@
 from datetime import datetime, timedelta
 from time_utils import days, split_hours
 from typing import List
-import fetch
-import rendering
+import fetch, rendering, uuid
 import database as db
 from weekly_schedule import WeeklySchedule
 
@@ -65,4 +64,12 @@ def get_user_agenda(user_id: str):
 
 
 def get_courses(course_id: str, course_name: str, department: str, year: str):
-    return fetch.fetch_courses_by_degree_course(course_id, course_name, department, year)
+    return fetch.fetch_courses_by_degree_course(
+        course_id, course_name, department, year
+    )
+
+
+def write_schedule(schedule: WeeklySchedule, format="pdf"):
+    outfile = f"{uuid.uuid4().hex}.{format}"
+    rendering.write_schedule(schedule.schedule, outfile, format=format)
+    return outfile

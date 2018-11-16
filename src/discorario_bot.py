@@ -1,5 +1,5 @@
 import os, json
-from datetime import datetime
+from datetime import datetime, timedelta
 from telegram import (
     ReplyKeyboardMarkup,
     ReplyKeyboardRemove,
@@ -44,9 +44,6 @@ def send_schedule(bot, update):
     chat_id = update.message.chat_id
     query = update.message.text
 
-    update.message.reply_text("*Send schedule*")
-    return
-
     date = datetime.now()
 
     try:
@@ -55,17 +52,24 @@ def send_schedule(bot, update):
         update.message.reply_text(NO_PREFERENCE_MESSAGE)
         logger.log(chat_id, query, NO_PREFERENCE_MESSAGE)
     else:
-        # TODO: Check if there are other lectures for the current week
-        # if not, get next week's schedule
+        next_lecture = schedule.get_next_lecture(query="", date=date)
+
+        if next_lecture is None:
+            date = date + timedelta(days=7)
+            schedule = do.get_weekly_schedule(chat_id, date=date)
 
         outfile = "schedule"
         format = "pdf"
-        # TODO: Needs to be updated
-        do.save_schedule(schedule, outfile, format=format)
-        with open(os.path.join(BASE_PATH, f"{outfile}.{format}"), "rb") as f:
+        filename = do.write_schedule(schedule, format=format)
+        fullpath = os.path.join(BASE_PATH, filename)
+        with open(fullpath, "rb") as f:
             bot.send_document(
-                chat_id=update.message.chat_id, document=f, timeout=10000
+                chat_id=update.message.chat_id,
+                document=f,
+                filename=f"schedule.{format}",
+                timeout=10000,
             )
+        os.remove(fullpath)
 
         logger.log(chat_id, query, "*Sent document*")
 
@@ -135,7 +139,7 @@ def department(bot, update, user_data):
         text="Scegli il corso di laurea.",
         chat_id=chat_id,
         message_id=message_id,
-        reply_markup=reply_markup
+        reply_markup=reply_markup,
     )
 
     return PREF_COURSE
@@ -161,7 +165,7 @@ def course(bot, update, user_data):
         text="Scegli l'anno",
         chat_id=chat_id,
         message_id=message_id,
-        reply_markup=reply_markup
+        reply_markup=reply_markup,
     )
 
     return PREF_YEAR
@@ -181,25 +185,19 @@ def year(bot, update, user_data):
         )
         if result:
             bot.edit_message_text(
-                text="Salvato!",
-                chat_id=chat_id,
-                message_id=message_id,
+                text="Salvato!", chat_id=chat_id, message_id=message_id
             )
             logger.log(chat_id, text, "Salvato!")
         else:
             bot.edit_message_text(
-                text=ERROR_MESSAGE,
-                chat_id=chat_id,
-                message_id=message_id,
+                text=ERROR_MESSAGE, chat_id=chat_id, message_id=message_id
             )
             logger.log(
                 chat_id, text, ERROR_MESSAGE, "Failed so save preference"
             )
     except Exception as e:
         bot.edit_message_text(
-            text=ERROR_MESSAGE,
-            chat_id=chat_id,
-            message_id=message_id,
+            text=ERROR_MESSAGE, chat_id=chat_id, message_id=message_id
         )
         logger.log(chat_id, text, ERROR_MESSAGE, f"Exception: {e}")
 
@@ -207,12 +205,14 @@ def year(bot, update, user_data):
 
 
 def build_agenda_reply_keyboard(courses, user_agenda):
-    reply_keyboard = [[InlineKeyboardButton('Salva', callback_data='done')]]
+    reply_keyboard = [[InlineKeyboardButton("Salva", callback_data="done")]]
     reply_keyboard += [
-        [InlineKeyboardButton(f"✔ {c}", callback_data=c)] if c in user_agenda
-        else [InlineKeyboardButton(c, callback_data=c)] for c in courses
+        [InlineKeyboardButton(f"✔ {c}", callback_data=c)]
+        if c in user_agenda
+        else [InlineKeyboardButton(c, callback_data=c)]
+        for c in courses
     ]
-    reply_keyboard += [[InlineKeyboardButton('Salva', callback_data='done')]]
+    reply_keyboard += [[InlineKeyboardButton("Salva", callback_data="done")]]
     return reply_keyboard
 
 
@@ -227,8 +227,7 @@ def begin_agenda(bot, update, user_data):
     reply_keyboard = build_agenda_reply_keyboard(courses, user_agenda)
     reply_markup = InlineKeyboardMarkup(reply_keyboard)
     update.message.reply_text(
-        text="Seleziona i corsi che ti interessano.",
-        reply_markup=reply_markup,
+        text="Seleziona i corsi che ti interessano.", reply_markup=reply_markup
     )
 
     return UPDATE_AGENDA
@@ -241,12 +240,10 @@ def update_agenda(bot, update, user_data):
     courses = user_data["courses"]
     user_agenda = user_data["agenda"]
 
-    if course == 'done':
+    if course == "done":
         do.save_user_agenda(chat_id, user_data["agenda"])
         bot.edit_message_text(
-            text="Calendario salvato!",
-            chat_id=chat_id,
-            message_id=message_id,
+            text="Calendario salvato!", chat_id=chat_id, message_id=message_id
         )
         return ConversationHandler.END
 
@@ -258,10 +255,10 @@ def update_agenda(bot, update, user_data):
     reply_keyboard = build_agenda_reply_keyboard(courses, user_data["agenda"])
     reply_markup = InlineKeyboardMarkup(reply_keyboard)
     bot.edit_message_text(
-            text="Seleziona i corsi che ti interessano.",
-            chat_id=chat_id,
-            message_id=message_id,
-            reply_markup=reply_markup,
+        text="Seleziona i corsi che ti interessano.",
+        chat_id=chat_id,
+        message_id=message_id,
+        reply_markup=reply_markup,
     )
 
     return UPDATE_AGENDA
@@ -299,7 +296,7 @@ def main():
                 CallbackQueryHandler(update_agenda, pass_user_data=True)
             ]
         },
-        fallbacks=[CommandHandler("cancel", cancel, pass_user_data=True)]
+        fallbacks=[CommandHandler("cancel", cancel, pass_user_data=True)],
     )
 
     dp = updater.dispatcher

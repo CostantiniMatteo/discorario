@@ -13,7 +13,7 @@ with open(CSS_PATH) as f:
 # TODO: Rewrite. Use WeeklySchedule instead of dictionary
 def get_html(schedule):
     courses = set(
-        l["name"] for row in schedule.values() for day in row for l in day
+        l.course for row in schedule.values() for day in row for l in day
     )
     color_mapping = dict(zip(courses, colors))
 
@@ -76,9 +76,9 @@ def get_row_html(hour, row, color_mapping):
                     result += lectures_template.format(
                         classes,
                         rowspans[day],
-                        color_mapping[lecture["name"]],
-                        lecture["name"],
-                        lecture["room"],
+                        color_mapping[lecture.course],
+                        lecture.course,
+                        lecture.room,
                     )
                 except Exception as e:
                     result += lectures_template.format(
@@ -90,7 +90,7 @@ def get_row_html(hour, row, color_mapping):
     return result
 
 
-def save_html(html, outfile, infile="schedule.html", css=None, format="png"):
+def write_html(html, outfile, infile="schedule.html", css=None, format="png"):
     if not css:
         css = default_css
 
@@ -98,7 +98,7 @@ def save_html(html, outfile, infile="schedule.html", css=None, format="png"):
         text_file.write("<style>" + css + "</style>\n")
         text_file.write(html)
 
-    outfile = os.path.join(BASE_PATH, f"{outfile}.{format}")
+    outfile = os.path.join(BASE_PATH, outfile)
     if format == "png":
         if not DEBUG:
             imgkitoptions = {"format": "png", "xvfb": ""}
@@ -117,6 +117,6 @@ def save_html(html, outfile, infile="schedule.html", css=None, format="png"):
             pdfkit.from_file(infile, outfile, options=options)
 
 
-def save_schedule(schedule, outfile, css=None, format="png"):
+def write_schedule(schedule, outfile, css=None, format="png"):
     html = get_html(schedule)
-    save_html(html, outfile, css=css, format=format)
+    write_html(html, outfile, css=css, format=format)
