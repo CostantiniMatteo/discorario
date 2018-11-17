@@ -22,18 +22,28 @@ import logger
 
 
 BASE_URL = "https://api.telegram.org/bot{}".format(TOKEN)
-
 ERROR_MESSAGE = "Qualcosa è andato storto."
-
 NO_PREFERENCE_MESSAGE = "Pare tu non abbia nessun orario\
 preferito. Puoi salvarne uno con il comando /preference"
-
 HELP_MESSAGE = "Ecco le funzioni:\n\n\
 - /cdl : salva un orario preferito.\n\n\
 - /calendario : scegli i corsi da visualizzare\n\n\
 - Per consolutare il tuo orario preferito puoi scrivere solo 'orario' \
 o usare il comando /orario.\n\n\
-- /help : per visualizzare questo messaggio"
+- /help : per visualizzare questo messaggio\n\n\n\
+Se trovi dei bug, puoi segnalarli scrivendo su Telegram a @matteo_costantini \
+o mandando una mail a m.costantini@campus.unimib.it. Grazie! :D"
+NEXT_LECTURE_TEMPLATE = "La prossima lezione di {name} è {day} \
+alle {hours} in aula {room}."
+SHRUG = "¯\\_(ツ)_/¯"
+CHOOSE_DEP = "Scegli il dipartimento. \
+Per annullare, in qualsiasi momento, usa /cancel"
+CHOOSE_DEG = "Scegli il corso di laurea."
+CHOOSE_YEAR = "Scegli l'anno."
+CDL_SAVED = "Salvato! Ora scrivi 'orario' o /orario!"
+CDL_FAILED = "Failed so save preference"
+CHOOSE_COURSES = "Seleziona i corsi che ti interessano."
+CANCELED = "Operazione annullata"
 
 PREF_DEPARTMENT, PREF_COURSE, PREF_YEAR = range(3)
 UPDATE_AGENDA = 0
@@ -86,12 +96,14 @@ def find_next_lecture(bot, update):
         logger.log(user, query, NO_PREFERENCE_MESSAGE)
     else:
         if not lecture:
-            update.message.reply_text("¯\\_(ツ)_/¯")
-            logger.log(user, query, "¯\\_(ツ)_/¯")
+            update.message.reply_text(SHRUG)
+            logger.log(user, query, SHRUG)
         else:
             weekday = days[lecture.begin.weekday()]
             hours = lecture.begin.strftime("%H:%M")
-            response = f"La prossima lezione di {lecture.course} è {weekday} alle {hours} in aula {lecture.room}."
+            response = NEXT_LECTURE_TEMPLATE.format(
+                name=lecture.course, day=weekday, hours=hours, room=lecture.room
+            )
             update.message.reply_text(response)
 
             logger.log(user, query, response)
@@ -114,14 +126,12 @@ def begin_preference(bot, update, user_data):
 
     reply_keyboard = [
         [InlineKeyboardButton(dep.replace("_", " "), callback_data=dep)]
-        for dep in departments
+        for dep in sorted(departments)
     ]
     reply_markup = InlineKeyboardMarkup(reply_keyboard)
 
-    response = "Scegli il dipartimento. Per annullare, in qualsiasi momento, usa /cancel"
-    update.message.reply_text(text=response, reply_markup=reply_markup)
-
-    logger.log(user, query, response)
+    update.message.reply_text(text=CHOOSE_DEP, reply_markup=reply_markup)
+    logger.log(user, query, CHOOSE_DEP)
 
     return PREF_DEPARTMENT
 
@@ -137,19 +147,18 @@ def department(bot, update, user_data):
     courses = do.get_all_degree_courses()
     reply_keyboard = [
         [InlineKeyboardButton(course.name, callback_data=course.code)]
-        for course in courses
+        for course in sorted(courses, key=lambda c: c.name)
         if course.department == user_data["preference"]["department"]
     ]
     reply_markup = InlineKeyboardMarkup(reply_keyboard)
-    response = "Scegli il corso di laurea."
+
     bot.edit_message_text(
-        text=response,
+        text=CHOOSE_DEG,
         chat_id=chat_id,
         message_id=message_id,
         reply_markup=reply_markup,
     )
-
-    logger.log(user, department, response)
+    logger.log(user, department, CHOOSE_DEG)
 
     return PREF_COURSE
 
@@ -171,15 +180,14 @@ def course(bot, update, user_data):
         for year in course.years
     ]
     reply_markup = InlineKeyboardMarkup(reply_keyboard)
-    response = "Scegli l'anno"
     bot.edit_message_text(
-        text=response,
+        text=CHOOSE_YEAR,
         chat_id=chat_id,
         message_id=message_id,
         reply_markup=reply_markup,
     )
 
-    logger.log(user, f"{course.code} - {course.name}", response)
+    logger.log(user, f"{course.code} - {course.name}", CHOOSE_YEAR)
 
     return PREF_YEAR
 
@@ -199,16 +207,14 @@ def year(bot, update, user_data):
         )
         if result:
             bot.edit_message_text(
-                text="Salvato! Ora scrivi 'orario' o /orario!",
-                chat_id=chat_id,
-                message_id=message_id,
+                text=CDL_SAVED, chat_id=chat_id, message_id=message_id
             )
-            logger.log(user, text, "Salvato! Ora scrivi 'orario' o /orario!")
+            logger.log(user, text, CDL_SAVED)
         else:
             bot.edit_message_text(
-                text=ERROR_MESSAGE, chat_id=chat_id, message_id=message_id
+                text=CDL_FAILED, chat_id=chat_id, message_id=message_id
             )
-            logger.log(user, text, ERROR_MESSAGE, "Failed so save preference")
+            logger.log(user, text, CDL_FAILED)
     except Exception as e:
         bot.edit_message_text(
             text=ERROR_MESSAGE, chat_id=chat_id, message_id=message_id
@@ -224,7 +230,7 @@ def build_agenda_reply_keyboard(courses, user_agenda):
         [InlineKeyboardButton(f"✔ {c}", callback_data=c)]
         if c in user_agenda
         else [InlineKeyboardButton(c, callback_data=c)]
-        for c in courses
+        for c in sorted(courses)
     ]
     reply_keyboard += [[InlineKeyboardButton("Salva", callback_data="done")]]
     return reply_keyboard
@@ -247,10 +253,8 @@ def begin_agenda(bot, update, user_data):
 
     reply_keyboard = build_agenda_reply_keyboard(courses, user_agenda)
     reply_markup = InlineKeyboardMarkup(reply_keyboard)
-    response = "Seleziona i corsi che ti interessano."
-    update.message.reply_text(text=response, reply_markup=reply_markup)
-
-    logger.log(user, query, response)
+    update.message.reply_text(text=CHOOSE_COURSES, reply_markup=reply_markup)
+    logger.log(user, query, CHOOSE_COURSES)
 
     return UPDATE_AGENDA
 
@@ -277,23 +281,22 @@ def update_agenda(bot, update, user_data):
 
     reply_keyboard = build_agenda_reply_keyboard(courses, user_data["agenda"])
     reply_markup = InlineKeyboardMarkup(reply_keyboard)
-    response = "Seleziona i corsi che ti interessano."
     bot.edit_message_text(
-        text=response,
+        text=CHOOSE_COURSES,
         chat_id=chat_id,
         message_id=message_id,
         reply_markup=reply_markup,
     )
 
-    logger.log(user, course, response)
+    logger.log(user, course, CHOOSE_COURSES)
 
     return UPDATE_AGENDA
 
 
 def cancel(bot, update, user_data):
     user_data.clear()
-    update.message.reply_text("Salvataggio corso annullato")
-    logger.log(update.message.from_user, text, "Salvataggio corso annullato")
+    update.message.reply_text(CANCELED)
+    logger.log(update.message.from_user, update.message.text, CANCELED)
 
     return ConversationHandler.END
 
