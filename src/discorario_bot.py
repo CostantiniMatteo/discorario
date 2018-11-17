@@ -24,7 +24,7 @@ import logger
 BASE_URL = "https://api.telegram.org/bot{}".format(TOKEN)
 ERROR_MESSAGE = "Qualcosa è andato storto."
 NO_PREFERENCE_MESSAGE = "Pare tu non abbia nessun orario\
-preferito. Puoi salvarne uno con il comando /preference"
+preferito. Puoi salvarne uno con il comando /cdl"
 HELP_MESSAGE = "Ecco le funzioni:\n\n\
 - /cdl : salva un orario preferito.\n\n\
 - /calendario : scegli i corsi da visualizzare\n\n\
