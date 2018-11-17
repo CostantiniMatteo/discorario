@@ -7,6 +7,9 @@ from time_utils import format_hour
 url = "http://gestioneorari.didattica.unimib.it/PortaleStudentiUnimib//grid_call.php"
 url_courses = "http://gestioneorari.didattica.unimib.it/PortaleStudentiUnimib//combo_call.php"
 
+cached_c = {"last_update": datetime.fromtimestamp(0), "courses": None}
+cached_dc = {"last_update": datetime.fromtimestamp(0), "degree_courses": None}
+
 
 def get_form(course_id: str, department: str, year: str, date: datetime):
     form = {
@@ -62,9 +65,17 @@ def fetch_lectures(
 
 
 def fetch_degree_courses():
-    response = requests.get(url_courses).text
-    degree_courses = json.loads(response.split("\n")[0].split("=")[1][:-1])
-    degree_courses_2018 = degree_courses[0]["elenco"]
+    global cached_dc
+    if cached_dc["last_update"] + timedelta(hours=1) <= datetime.now():
+        response = requests.get(url_courses).text
+        degree_courses = json.loads(response.split("\n")[0].split("=")[1][:-1])
+        degree_courses_2018 = degree_courses[0]["elenco"]
+        cached_dc = {
+            "last_update": datetime.now(),
+            "degree_courses": degree_courses_2018,
+        }
+    else:
+        degree_courses_2018 = cached_dc["degree_courses"]
 
     result = [
         DegreeCourse(
@@ -85,9 +96,14 @@ def fetch_degree_courses():
 def fetch_courses_by_degree_course(
     course_id: str, course_name: str, department: str, year: str
 ):
-    response = requests.get(url_courses).text
-    courses = json.loads(response.split("\n")[1].split("=")[1][:-1])
-    courses_2018 = courses[0]["elenco"]
+    global cached_c
+    if cached_c["last_update"] + timedelta(hours=1) <= datetime.now():
+        response = requests.get(url_courses).text
+        courses = json.loads(response.split("\n")[1].split("=")[1][:-1])
+        courses_2018 = courses[0]["elenco"]
+        cached_c = {"last_update": datetime.now(), "courses": courses_2018}
+    else:
+        courses_2018 = cached_c["courses"]
 
     def to_skip(course):
         course = course.lower()
