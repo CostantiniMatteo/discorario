@@ -27,6 +27,8 @@ def init():
         """CREATE TABLE log (
         id integer primary key autoincrement,
         user_id text,
+        full_name text,
+        username text,
         message text,
         response text,
         error text

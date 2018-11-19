@@ -1,6 +1,7 @@
 import sqlite3
 from configuration import DB_PATH
 from typing import List
+from telegram.user import User
 
 
 def upsert_user_preference(
@@ -44,6 +45,7 @@ def save_user_agenda(user_id: str, courses: List[str]):
 
     conn = sqlite3.connect(DB_PATH)
     with conn:
+        conn.execute("DELETE FROM user_agenda WHERE user_id = ?;", (user_id,))
         conn.executemany(
             "INSERT OR REPLACE INTO user_agenda VALUES (?,?);", entries
         )
@@ -63,13 +65,13 @@ def get_user_agenda(user_id: str):
         return []
 
 
-def log(user_id: str, message: str, response: str, error: str):
+def log(user: User, message: str, response: str, error: str):
     conn = sqlite3.connect(DB_PATH)
 
     with conn:
         conn.execute(
-            """INSERT INTO log (user_id, message, response, error)
-            VALUES (?, ?, ?, ?);""",
-            (user_id, message, response, error),
+            """INSERT INTO log (user_id, full_name, username, message, response, error)
+            VALUES (?, ?, ?, ?, ?, ?);""",
+            (user.id, user.full_name, user.username, message, response, error),
         )
     conn.close()
