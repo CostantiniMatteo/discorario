@@ -334,7 +334,7 @@ def main():
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("help", help))
     dp.add_handler(CommandHandler("orario", send_schedule))
-    dp.add_handler(RegexHandler("^[^a-zA-Z]*orario[^a-zA-Z]*$", send_schedule))
+    dp.add_handler(RegexHandler("^[^a-zA-Z]*[oO]rario[^a-zA-Z]*$", send_schedule))
     dp.add_handler(preference_conversation_handler)
     dp.add_handler(agenda_conversation_handler)
     dp.add_handler(MessageHandler(Filters.text, find_next_lecture))

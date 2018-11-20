@@ -31,6 +31,7 @@ def save_preference(
         db.upsert_user_preference(
             user_id, course_id, course_name, department, year
         )
+        save_user_agenda(user_id, [])
     except Exception:
         return False
     else:
