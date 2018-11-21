@@ -1,4 +1,4 @@
-import requests, json
+import requests, json, re
 from datetime import datetime, timedelta
 from lecture import Lecture
 from degree_course import DegreeCourse
@@ -105,12 +105,18 @@ def fetch_courses_by_degree_course(
     else:
         courses_2018 = cached_c["courses"]
 
-    def to_skip(course):
-        course = course.lower()
-        words = ["prova finale", "erasmus"]
+    def to_skip(course, year):
+        course_name = course["label"].lower()
+        id = course["valore"]
+        words = ["prova finale", "erasmus", "stage"]
+        year = year.split("|")[-1]
+        pattern = re.compile(f"(.+)_(.+)_{year}_(.+)")
+
+        if (year != "0" and pattern.match(id) is None):
+            return True
 
         for w in words:
-            if course.find(w) >= 0:
+            if course_name.find(w) >= 0:
                 return True
         else:
             return False
@@ -118,7 +124,7 @@ def fetch_courses_by_degree_course(
     result = set(
         c["label"].strip()
         for c in courses_2018
-        if c["valore"].find(course_id) >= 0 and not to_skip(c["label"])
+        if c["valore"].find(course_id) >= 0 and not to_skip(c, year)
     )
 
     return list(result)
